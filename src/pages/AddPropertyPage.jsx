@@ -51,7 +51,7 @@ export default function AddPropertyPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-40">
+      <div className="bg-white px-4 pt-5 pb-4 shadow-sm sticky top-0 z-40">
         <div className="max-w-md mx-auto flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}

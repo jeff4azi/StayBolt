@@ -54,7 +54,7 @@ export default function AgentPage() {
       {/* Header */}
       <div
         className={`bg-white sticky top-0 z-40 shadow-sm overflow-hidden transition-all duration-300 ease-in-out ${
-          collapsed ? "pt-3 pb-3" : "pt-12 pb-5"
+          collapsed ? "pt-3 pb-3" : "pt-5 pb-5"
         }`}
       >
         <div className="max-w-md mx-auto px-4">

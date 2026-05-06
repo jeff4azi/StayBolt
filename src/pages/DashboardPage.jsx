@@ -29,7 +29,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-5 shadow-sm">
+      <div className="bg-white px-4 pt-5 pb-5 shadow-sm">
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img

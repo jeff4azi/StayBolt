@@ -9,7 +9,7 @@ export default function SavedPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-4 pt-12 pb-4 shadow-sm sticky top-0 z-40">
+      <div className="bg-white px-4 pt-5 pb-4 shadow-sm sticky top-0 z-40">
         <div className="max-w-md mx-auto">
           <h1 className="text-xl font-bold text-gray-900">Saved</h1>
           <p className="text-gray-400 text-[13px]">

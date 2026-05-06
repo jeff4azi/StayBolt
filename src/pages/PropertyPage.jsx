@@ -50,7 +50,7 @@ export default function PropertyPage() {
           className="w-full h-72 object-cover"
         />
         {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4">
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5 pb-4">
           <button
             onClick={() => navigate(-1)}
             className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
