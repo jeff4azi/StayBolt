@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -112,12 +111,26 @@ export default function DashboardPage() {
                     <p className="text-green-600 text-[13px] font-bold mt-0.5">
                       {l.price}
                     </p>
-                    <div className="flex items-center gap-1 mt-1 text-gray-400 text-[11px]">
-                      <Eye size={11} />
-                      <span>{l.views} views</span>
+                    <div className="flex items-center gap-3 mt-1">
+                      <div className="flex items-center gap-1 text-gray-400 text-[11px]">
+                        <Eye size={11} />
+                        <span>{l.views} views</span>
+                      </div>
+                      {l.rating > 0 && (
+                        <div className="flex items-center gap-1 text-[11px]">
+                          <Star
+                            size={11}
+                            className="fill-yellow-400 text-yellow-400"
+                          />
+                          <span className="font-medium text-gray-500">
+                            {l.rating}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
                 {/* Actions */}
                 <div className="border-t border-gray-100 flex items-center justify-between px-3 py-2">
                   <button
@@ -137,11 +150,11 @@ export default function DashboardPage() {
                     )}
                   </button>
                   <button
-                    onClick={() => navigate(`/property/${l.id}`)}
+                    onClick={() => navigate(`/edit-property/${l.id}`)}
                     className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium active:scale-95 transition-transform"
                   >
                     <Pencil size={13} />
-                    View
+                    Edit
                   </button>
                 </div>
               </div>

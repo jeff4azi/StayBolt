@@ -41,6 +41,12 @@ export function AppProvider({ children }) {
     );
   };
 
+  const updateListing = (id, updates) => {
+    setListings((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...updates } : l)),
+    );
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -54,6 +60,7 @@ export function AppProvider({ children }) {
         listings,
         addListing,
         toggleStatus,
+        updateListing,
       }}
     >
       {children}
