@@ -1,19 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import ListingCard from "../components/ListingCard";
 
 const FILTERS = ["all", "available", "taken"];
+const COLLAPSE_THRESHOLD = 60;
 
 export default function FeedPage() {
   const { listings } = useApp();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [collapsed, setCollapsed] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > COLLAPSE_THRESHOLD && currentY > lastScrollY.current) {
+        // Scrolling down past threshold — collapse
+        setCollapsed(true);
+      } else if (currentY < lastScrollY.current || currentY <= COLLAPSE_THRESHOLD) {
+        // Scrolling up or near top — expand
+        setCollapsed(false);
+      }
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const filtered = listings.filter((l) => {
     const q = query.toLowerCase();
     const matchesQuery =
-      l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
+      l.title.toLowerCase().includes(q) ||
+      l.location.toLowerCase().includes(q);
     const matchesFilter = filter === "all" || l.status === filter;
     return matchesQuery && matchesFilter;
   });
@@ -21,15 +42,25 @@ export default function FeedPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-white px-4 pt-5 pb-4 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-md mx-auto">
-          <h1 className="text-xl font-bold text-gray-900">
-            Stay<span className="text-green-600">Bolt</span>
-          </h1>
-          <p className="text-gray-400 text-[13px] mb-3">
-            Find your perfect home
-          </p>
-          {/* Search */}
+      <div
+        className={`bg-white sticky top-0 z-40 shadow-sm overflow-hidden transition-all duration-300 ease-in-out ${
+          collapsed ? "pt-3 pb-3" : "pt-5 pb-4"
+        }`}
+      >
+        <div className="max-w-md mx-auto px-4">
+          {/* Brand — shrinks/hides on collapse */}
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              collapsed ? "max-h-0 opacity-0 mb-0" : "max-h-16 opacity-100 mb-3"
+            }`}
+          >
+            <h1 className="text-xl font-bold text-gray-900">
+              Stay<span className="text-green-600">Bolt</span>
+            </h1>
+            <p className="text-gray-400 text-[13px]">Find your perfect home</p>
+          </div>
+
+          {/* Search — always visible, compact when collapsed */}
           <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
             <Search size={16} className="text-gray-400 shrink-0" />
             <input
@@ -40,8 +71,13 @@ export default function FeedPage() {
               className="bg-transparent text-[14px] text-gray-700 placeholder-gray-400 outline-none w-full"
             />
           </div>
-          {/* Filter chips */}
-          <div className="flex gap-2 mt-3">
+
+          {/* Filter chips — hide on collapse */}
+          <div
+            className={`flex gap-2 transition-all duration-300 ease-in-out overflow-hidden ${
+              collapsed ? "max-h-0 opacity-0 mt-0" : "max-h-12 opacity-100 mt-3"
+            }`}
+          >
             {FILTERS.map((f) => (
               <button
                 key={f}
