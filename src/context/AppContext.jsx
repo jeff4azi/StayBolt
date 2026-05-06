@@ -1,5 +1,8 @@
 import { createContext, useContext, useState } from "react";
-import { listings as initialListings } from "../data/listings";
+import {
+  listings as initialListings,
+  agentReviews as initialReviews,
+} from "../data/listings";
 
 const AppContext = createContext(null);
 
@@ -8,6 +11,7 @@ export function AppProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentAgent, setCurrentAgent] = useState(null);
   const [listings, setListings] = useState(initialListings);
+  const [agentReviews, setAgentReviews] = useState(initialReviews);
 
   const toggleSave = (id) => {
     setSaved((prev) =>
@@ -47,6 +51,13 @@ export function AppProvider({ children }) {
     );
   };
 
+  const addAgentReview = (agentId, review) => {
+    setAgentReviews((prev) => ({
+      ...prev,
+      [agentId]: [review, ...(prev[agentId] || [])],
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -61,6 +72,8 @@ export function AppProvider({ children }) {
         addListing,
         toggleStatus,
         updateListing,
+        agentReviews,
+        addAgentReview,
       }}
     >
       {children}

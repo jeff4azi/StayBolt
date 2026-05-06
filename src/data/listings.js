@@ -25,6 +25,78 @@ export const agents = [
   },
 ];
 
+export const agentReviews = {
+  a1: [
+    {
+      id: "r1",
+      author: "Tunde B.",
+      avatar: "https://i.pravatar.cc/150?img=3",
+      rating: 5,
+      comment:
+        "Chidi was incredibly professional and helped me find my apartment within a week. Highly recommend!",
+      date: "Apr 2026",
+    },
+    {
+      id: "r2",
+      author: "Ngozi A.",
+      avatar: "https://i.pravatar.cc/150?img=25",
+      rating: 5,
+      comment:
+        "Very responsive and honest about property conditions. No hidden surprises.",
+      date: "Mar 2026",
+    },
+    {
+      id: "r3",
+      author: "Seun M.",
+      avatar: "https://i.pravatar.cc/150?img=8",
+      rating: 4,
+      comment:
+        "Great experience overall. The process was smooth and he kept me updated throughout.",
+      date: "Feb 2026",
+    },
+  ],
+  a2: [
+    {
+      id: "r4",
+      author: "Kemi O.",
+      avatar: "https://i.pravatar.cc/150?img=32",
+      rating: 5,
+      comment:
+        "Amaka found us a stunning duplex in Maitama. She really understands luxury properties.",
+      date: "Apr 2026",
+    },
+    {
+      id: "r5",
+      author: "Bola F.",
+      avatar: "https://i.pravatar.cc/150?img=19",
+      rating: 4,
+      comment:
+        "Professional and knowledgeable. Took time to understand exactly what we needed.",
+      date: "Jan 2026",
+    },
+  ],
+  a3: [
+    {
+      id: "r6",
+      author: "Dami L.",
+      avatar: "https://i.pravatar.cc/150?img=44",
+      rating: 4,
+      comment:
+        "Emeka helped me find an affordable place close to my office. Very patient agent.",
+      date: "Mar 2026",
+    },
+    {
+      id: "r7",
+      author: "Femi K.",
+      avatar: "https://i.pravatar.cc/150?img=57",
+      rating: 4,
+      comment:
+        "Good communication and fair pricing. Would use his services again.",
+      date: "Feb 2026",
+    },
+  ],
+};
+
 export const listings = [
   {
     id: "p1",
