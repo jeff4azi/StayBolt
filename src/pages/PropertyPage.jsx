@@ -9,6 +9,7 @@ import {
   Bath,
   Maximize2,
   Star,
+  MessageCircle,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { agents } from "../data/listings";
@@ -170,6 +171,22 @@ export default function PropertyPage() {
             View Profile →
           </span>
         </div>
+
+        {/* Contact CTA */}
+        <button
+          onClick={() =>
+            window.open(
+              `https://wa.me/${agent.phone}?text=Hi%20${agent.name},%20I'm%20interested%20in%20your%20property:%20${encodeURIComponent(
+                listing.title,
+              )}`,
+              "_blank",
+            )
+          }
+          className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
+        >
+          <MessageCircle size={18} />
+          Contact Agent on WhatsApp
+        </button>
 
         {/* Rate this property */}
         <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">

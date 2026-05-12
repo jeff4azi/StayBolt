@@ -6,6 +6,7 @@ export const agents = [
     rating: 4.8,
     reviews: 34,
     bio: "Top-rated agent in Lagos with 6+ years of experience in residential and commercial properties.",
+    phone: "+2348123456789",
   },
   {
     id: "a2",
@@ -14,6 +15,7 @@ export const agents = [
     rating: 4.5,
     reviews: 21,
     bio: "Specializing in luxury apartments and short-let properties across Abuja.",
+    phone: "+2348234567890",
   },
   {
     id: "a3",
@@ -22,6 +24,7 @@ export const agents = [
     rating: 4.2,
     reviews: 18,
     bio: "Affordable housing expert helping first-time renters find their perfect home.",
+    phone: "+2348345678901",
   },
 ];
 
