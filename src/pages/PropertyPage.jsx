@@ -174,14 +174,14 @@ export default function PropertyPage() {
 
         {/* Contact CTA */}
         <button
-          onClick={() =>
+          onClick={() => {
+            const propertyUrl = `${window.location.origin}/property/${listing.id}`;
+            const message = `Hello ${agent.name},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${propertyUrl}\n\nKindly get back to me at your earliest convenience. Thank you.`;
             window.open(
-              `https://wa.me/${agent.phone}?text=Hi%20${agent.name},%20I'm%20interested%20in%20your%20property:%20${encodeURIComponent(
-                listing.title,
-              )}`,
+              `https://wa.me/${agent.phone}?text=${encodeURIComponent(message)}`,
               "_blank",
-            )
-          }
+            );
+          }}
           className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
         >
           <MessageCircle size={18} />
