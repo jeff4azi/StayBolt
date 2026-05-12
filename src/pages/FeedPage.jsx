@@ -5,7 +5,6 @@ import ListingCard from "../components/ListingCard";
 import logo from "../assets/logo.png";
 
 const FILTERS = ["all", "available", "taken"];
-const COLLAPSE_THRESHOLD = 60;
 
 export default function FeedPage() {
   const { listings } = useApp();
@@ -17,16 +16,16 @@ export default function FeedPage() {
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-      if (currentY > COLLAPSE_THRESHOLD && currentY > lastScrollY.current) {
-        // Scrolling down past threshold — collapse
-        setCollapsed(true);
-      } else if (
-        currentY < lastScrollY.current ||
-        currentY <= COLLAPSE_THRESHOLD
-      ) {
-        // Scrolling up or near top — expand
-        setCollapsed(false);
+      const diff = currentY - lastScrollY.current;
+
+      if (Math.abs(diff) < 4) return;
+
+      if (currentY === 0) {
+        setCollapsed(false); // only expand at very top
+      } else if (diff > 0 && currentY > 80) {
+        setCollapsed(true); // collapse when scrolling down
       }
+
       lastScrollY.current = currentY;
     };
 
@@ -44,19 +43,13 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div
-        className={`bg-white sticky top-0 z-40 shadow-sm overflow-hidden transition-all duration-300 ease-in-out ${
-          collapsed ? "pt-3 pb-3" : "pt-5 pb-4"
-        }`}
-      >
-        <div className="max-w-md mx-auto px-4">
-          {/* Brand — shrinks/hides on collapse */}
-          <div
-            className={`transition-all duration-300 ease-in-out overflow-hidden ${
-              collapsed ? "max-h-0 opacity-0 mb-0" : "max-h-16 opacity-100 mb-3"
-            }`}
-          >
+      {/* Header — always full height in DOM, content slides up inside it */}
+      <div className="bg-white sticky top-0 z-40 shadow-sm">
+        <div
+          className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+          style={{ maxHeight: collapsed ? "0px" : "80px" }}
+        >
+          <div className="max-w-md mx-auto px-4 pt-5 pb-0">
             <div className="flex items-center gap-3">
               <img
                 src={logo}
@@ -71,8 +64,10 @@ export default function FeedPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Search — always visible, compact when collapsed */}
+        {/* Search + filters — always visible */}
+        <div className="max-w-md mx-auto px-4 pt-3 pb-4">
           <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2.5">
             <Search size={16} className="text-gray-400 shrink-0" />
             <input
@@ -84,25 +79,25 @@ export default function FeedPage() {
             />
           </div>
 
-          {/* Filter chips — hide on collapse */}
           <div
-            className={`flex gap-2 transition-all duration-300 ease-in-out overflow-hidden ${
-              collapsed ? "max-h-0 opacity-0 mt-0" : "max-h-12 opacity-100 mt-3"
-            }`}
+            className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
+            style={{ maxHeight: collapsed ? "0px" : "44px" }}
           >
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-full text-[12px] font-medium capitalize transition-colors ${
-                  filter === f
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+            <div className="flex gap-2 mt-3">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 rounded-full text-[12px] font-medium capitalize transition-colors ${
+                    filter === f
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

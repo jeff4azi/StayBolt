@@ -1,3 +1,4 @@
+import { Home, BarChart3, MessageSquare } from "lucide-react";
 import logo from "../assets/logo.png";
 
 const GoogleIcon = ({ size = 20 }) => (
@@ -27,9 +28,9 @@ const GoogleIcon = ({ size = 20 }) => (
 );
 
 const features = [
-  { icon: "🏠", label: "Post listings instantly" },
-  { icon: "👁️", label: "Track views & inquiries" },
-  { icon: "💬", label: "Connect with renters" },
+  { icon: Home, label: "Post listings instantly" },
+  { icon: BarChart3, label: "Track views & inquiries" },
+  { icon: MessageSquare, label: "Connect with renters" },
 ];
 
 export default function AuthScreen({ onLogin }) {
@@ -37,7 +38,6 @@ export default function AuthScreen({ onLogin }) {
     <div className="min-h-screen bg-white flex flex-col">
       {/* ── Hero ── */}
       <div className="relative flex-1 bg-green-600 overflow-hidden flex flex-col items-center justify-center px-8 pt-20 pb-16">
-        {/* Subtle background circles for depth */}
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-green-500/40 rounded-full" />
         <div className="absolute -bottom-24 -left-20 w-72 h-72 bg-green-700/30 rounded-full" />
 
@@ -60,12 +60,12 @@ export default function AuthScreen({ onLogin }) {
 
         {/* Feature pills */}
         <div className="relative z-10 flex flex-col gap-2.5 mt-10 w-full max-w-xs">
-          {features.map(({ icon, label }) => (
+          {features.map(({ icon: Icon, label }) => (
             <div
               key={label}
               className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3"
             >
-              <span className="text-lg leading-none">{icon}</span>
+              <Icon className="text-white w-5 h-5" strokeWidth={2.5} />
               <span className="text-white text-[14px] font-medium">
                 {label}
               </span>
@@ -76,7 +76,6 @@ export default function AuthScreen({ onLogin }) {
 
       {/* ── Bottom sheet ── */}
       <div className="bg-white rounded-t-[2rem] -mt-6 relative z-10 px-6 pt-8 pb-10">
-        {/* Drag handle */}
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
 
         <h2 className="text-[22px] font-bold text-gray-900 leading-snug">
