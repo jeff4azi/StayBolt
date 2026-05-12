@@ -28,11 +28,16 @@ export default function ListingCard({ listing }) {
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden active:scale-[0.98] transition-transform duration-150 cursor-pointer"
     >
       {/* Image */}
-      <div className="relative h-52 overflow-hidden">
+      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
         <img
           src={listing.image}
           alt={listing.title}
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+          loading="lazy"
+          onError={(e) => {
+            e.target.src =
+              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+          }}
         />
         {/* Status badge */}
         <span

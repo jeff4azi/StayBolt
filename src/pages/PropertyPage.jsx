@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,17 +10,110 @@ import {
   Maximize2,
   Star,
   MessageCircle,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { agents } from "../data/listings";
 import StarRating from "../components/StarRating";
 
+// ── Fullscreen lightbox ──────────────────────────────────────────────
+function Lightbox({ images, startIndex, onClose }) {
+  const [current, setCurrent] = useState(startIndex);
+
+  const prev = () => setCurrent((c) => (c - 1 + images.length) % images.length);
+  const next = () => setCurrent((c) => (c + 1) % images.length);
+
+  // keyboard navigation
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => (document.body.style.overflow = "");
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
+        <span className="text-white/60 text-[13px] font-medium">
+          {current + 1} / {images.length}
+        </span>
+        <button
+          onClick={onClose}
+          className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center active:bg-white/20"
+        >
+          <X size={18} className="text-white" />
+        </button>
+      </div>
+
+      {/* Main image */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+        <img
+          key={current}
+          src={images[current]}
+          alt=""
+          className="max-w-full max-h-full object-contain animate-fade-in"
+        />
+        {/* Prev / Next */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              className="absolute left-3 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center active:bg-white/20"
+            >
+              <ChevronLeft size={20} className="text-white" />
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-3 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center active:bg-white/20"
+            >
+              <ChevronRight size={20} className="text-white" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Bottom strip */}
+      {images.length > 1 && (
+        <div className="flex gap-2 px-4 py-4 overflow-x-auto shrink-0">
+          {images.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrent(i)}
+              className={`shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all ${
+                current === i ? "border-white" : "border-white/20"
+              }`}
+            >
+              <img src={img} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────
 export default function PropertyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { listings, isSaved, toggleSave } = useApp();
   const [activeImg, setActiveImg] = useState(0);
   const [userRating, setUserRating] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const listing = listings.find((l) => l.id === id);
   if (!listing) {
@@ -42,182 +135,232 @@ export default function PropertyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Image hero */}
-      <div className="relative">
-        <img
-          src={listing.gallery[activeImg]}
-          alt={listing.title}
-          className="w-full h-72 object-cover"
+    <>
+      {lightboxOpen && (
+        <Lightbox
+          images={listing.gallery}
+          startIndex={activeImg}
+          onClose={() => setLightboxOpen(false)}
         />
-        {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5 pb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
-          >
-            <ArrowLeft size={18} className="text-gray-700" />
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={() => toggleSave(listing.id)}
-              className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
-            >
-              <Bookmark
-                size={16}
-                className={
-                  saved ? "fill-green-500 text-green-500" : "text-gray-600"
-                }
-              />
-            </button>
-            <button
-              onClick={handleShare}
-              className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
-            >
-              <Share2 size={16} className="text-gray-600" />
-            </button>
-          </div>
-        </div>
-        {/* Status badge */}
-        <span
-          className={`absolute bottom-3 left-4 text-xs font-semibold px-2.5 py-1 rounded-full ${
-            listing.status === "available"
-              ? "bg-green-500 text-white"
-              : "bg-gray-500 text-white"
-          }`}
-        >
-          {listing.status === "available" ? "Available" : "Taken"}
-        </span>
-      </div>
-
-      {/* Gallery thumbnails */}
-      {listing.gallery.length > 1 && (
-        <div className="flex gap-2 px-4 mt-3 max-w-md mx-auto overflow-x-auto">
-          {listing.gallery.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveImg(i)}
-              className={`shrink-0 w-16 h-12 rounded-xl overflow-hidden border-2 transition-all ${
-                activeImg === i ? "border-green-500" : "border-transparent"
-              }`}
-            >
-              <img src={img} alt="" className="w-full h-full object-cover" />
-            </button>
-          ))}
-        </div>
       )}
 
-      {/* Details */}
-      <div className="max-w-md mx-auto px-4 mt-4">
-        <h1 className="text-xl font-bold text-gray-900">{listing.title}</h1>
-        <div className="flex items-center gap-1 mt-1 text-gray-500 text-[13px]">
-          <MapPin size={13} />
-          <span>{listing.location}</span>
-        </div>
-        <p className="text-green-600 font-bold text-xl mt-2">{listing.price}</p>
-
-        {/* Stats */}
-        <div className="flex gap-4 mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex flex-col items-center flex-1">
-            <Bed size={18} className="text-green-600" />
-            <span className="text-[13px] font-semibold text-gray-800 mt-1">
-              {listing.beds}
-            </span>
-            <span className="text-[11px] text-gray-400">Beds</span>
-          </div>
-          <div className="w-px bg-gray-100" />
-          <div className="flex flex-col items-center flex-1">
-            <Bath size={18} className="text-green-600" />
-            <span className="text-[13px] font-semibold text-gray-800 mt-1">
-              {listing.baths}
-            </span>
-            <span className="text-[11px] text-gray-400">Baths</span>
-          </div>
-          <div className="w-px bg-gray-100" />
-          <div className="flex flex-col items-center flex-1">
-            <Maximize2 size={18} className="text-green-600" />
-            <span className="text-[13px] font-semibold text-gray-800 mt-1">
-              {listing.sqft}
-            </span>
-            <span className="text-[11px] text-gray-400">Sq ft</span>
-          </div>
-        </div>
-
-        {/* Description */}
-        <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-800 mb-2">Description</h2>
-          <p className="text-gray-500 text-[14px] leading-relaxed">
-            {listing.description}
-          </p>
-        </div>
-
-        {/* Agent */}
-        <div
-          onClick={() => navigate(`/agent/${agent.id}`)}
-          className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer active:bg-gray-50 transition-colors"
-        >
+      <div className="min-h-screen bg-gray-50 pb-24">
+        {/* ── Hero image ── */}
+        <div className="relative w-full aspect-[4/3] bg-gray-200 overflow-hidden">
+          {/* Blur placeholder */}
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+          )}
           <img
-            src={agent.avatar}
-            alt={agent.name}
-            className="w-12 h-12 rounded-full object-cover border-2 border-green-100"
+            src={listing.gallery[activeImg]}
+            alt={listing.title}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+              imgLoaded ? "opacity-100" : "opacity-0"
+            }`}
+            onLoad={() => setImgLoaded(true)}
+            onError={(e) => {
+              e.target.src =
+                "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+              setImgLoaded(true);
+            }}
           />
-          <div className="flex-1">
-            <p className="font-semibold text-gray-800 text-[14px]">
-              {agent.name}
-            </p>
-            <StarRating rating={agent.rating} size={13} />
-          </div>
-          <span className="text-green-600 text-[13px] font-medium">
-            View Profile →
-          </span>
-        </div>
 
-        {/* Contact CTA */}
-        <button
-          onClick={() => {
-            const propertyUrl = `${window.location.origin}/property/${listing.id}`;
-            const message = `Hello ${agent.name},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${propertyUrl}\n\nKindly get back to me at your earliest convenience. Thank you.`;
-            window.open(
-              `https://wa.me/${agent.phone}?text=${encodeURIComponent(message)}`,
-              "_blank",
-            );
-          }}
-          className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
-        >
-          <MessageCircle size={18} />
-          Contact Agent on WhatsApp
-        </button>
+          {/* Gradient scrim for legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
 
-        {/* Rate this property */}
-        <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <h2 className="font-semibold text-gray-800 mb-3">
-            Rate this property
-          </h2>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((s) => (
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
+            >
+              <ArrowLeft size={18} className="text-gray-700" />
+            </button>
+            <div className="flex gap-2">
               <button
-                key={s}
-                onClick={() => setUserRating(s)}
-                className="active:scale-90 transition-transform"
+                onClick={() => toggleSave(listing.id)}
+                className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
               >
-                <Star
-                  size={28}
+                <Bookmark
+                  size={16}
                   className={
-                    s <= userRating
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300"
+                    saved ? "fill-green-500 text-green-500" : "text-gray-600"
                   }
                 />
               </button>
+              <button
+                onClick={handleShare}
+                className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
+              >
+                <Share2 size={16} className="text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom row: status + zoom hint */}
+          <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                listing.status === "available"
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-500 text-white"
+              }`}
+            >
+              {listing.status === "available" ? "Available" : "Taken"}
+            </span>
+            {/* Tap to expand hint */}
+            <button
+              onClick={() => setLightboxOpen(true)}
+              className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[12px] font-medium px-3 py-1.5 rounded-full active:bg-black/60"
+            >
+              <ZoomIn size={13} />
+              {listing.gallery.length} photos
+            </button>
+          </div>
+
+          {/* Invisible tap target over the image to open lightbox */}
+          <button
+            onClick={() => setLightboxOpen(true)}
+            className="absolute inset-0 w-full h-full"
+            aria-label="View full screen"
+          />
+          {/* Re-render top bar above tap target */}
+        </div>
+
+        {/* ── Thumbnail strip ── */}
+        {listing.gallery.length > 1 && (
+          <div className="flex gap-2 px-4 mt-3 max-w-md mx-auto overflow-x-auto pb-1">
+            {listing.gallery.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setActiveImg(i);
+                  setImgLoaded(false);
+                }}
+                className={`shrink-0 w-16 rounded-xl overflow-hidden border-2 transition-all aspect-[4/3] ${
+                  activeImg === i ? "border-green-500" : "border-transparent"
+                }`}
+              >
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </button>
             ))}
           </div>
-          {userRating > 0 && (
-            <p className="text-green-600 text-[13px] mt-2 font-medium">
-              Thanks for rating!
+        )}
+
+        {/* ── Details ── */}
+        <div className="max-w-md mx-auto px-4 mt-4">
+          <h1 className="text-xl font-bold text-gray-900">{listing.title}</h1>
+          <div className="flex items-center gap-1 mt-1 text-gray-500 text-[13px]">
+            <MapPin size={13} />
+            <span>{listing.location}</span>
+          </div>
+          <p className="text-green-600 font-bold text-xl mt-2">
+            {listing.price}
+          </p>
+
+          {/* Stats */}
+          <div className="flex gap-4 mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div className="flex flex-col items-center flex-1">
+              <Bed size={18} className="text-green-600" />
+              <span className="text-[13px] font-semibold text-gray-800 mt-1">
+                {listing.beds}
+              </span>
+              <span className="text-[11px] text-gray-400">Beds</span>
+            </div>
+            <div className="w-px bg-gray-100" />
+            <div className="flex flex-col items-center flex-1">
+              <Bath size={18} className="text-green-600" />
+              <span className="text-[13px] font-semibold text-gray-800 mt-1">
+                {listing.baths}
+              </span>
+              <span className="text-[11px] text-gray-400">Baths</span>
+            </div>
+            <div className="w-px bg-gray-100" />
+            <div className="flex flex-col items-center flex-1">
+              <Maximize2 size={18} className="text-green-600" />
+              <span className="text-[13px] font-semibold text-gray-800 mt-1">
+                {listing.sqft}
+              </span>
+              <span className="text-[11px] text-gray-400">Sq ft</span>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-800 mb-2">Description</h2>
+            <p className="text-gray-500 text-[14px] leading-relaxed">
+              {listing.description}
             </p>
-          )}
+          </div>
+
+          {/* Agent */}
+          <div
+            onClick={() => navigate(`/agent/${agent.id}`)}
+            className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer active:bg-gray-50 transition-colors"
+          >
+            <img
+              src={agent.avatar}
+              alt={agent.name}
+              className="w-12 h-12 rounded-full object-cover border-2 border-green-100"
+            />
+            <div className="flex-1">
+              <p className="font-semibold text-gray-800 text-[14px]">
+                {agent.name}
+              </p>
+              <StarRating rating={agent.rating} size={13} />
+            </div>
+            <span className="text-green-600 text-[13px] font-medium">
+              View Profile →
+            </span>
+          </div>
+
+          {/* WhatsApp CTA */}
+          <button
+            onClick={() => {
+              const propertyUrl = `${window.location.origin}/property/${listing.id}`;
+              const message = `Hello ${agent.name},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${propertyUrl}\n\nKindly get back to me at your earliest convenience. Thank you.`;
+              window.open(
+                `https://wa.me/${agent.phone}?text=${encodeURIComponent(message)}`,
+                "_blank",
+              );
+            }}
+            className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
+          >
+            <MessageCircle size={18} />
+            Contact Agent on WhatsApp
+          </button>
+
+          {/* Rate this property */}
+          <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <h2 className="font-semibold text-gray-800 mb-3">
+              Rate this property
+            </h2>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setUserRating(s)}
+                  className="active:scale-90 transition-transform"
+                >
+                  <Star
+                    size={28}
+                    className={
+                      s <= userRating
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }
+                  />
+                </button>
+              ))}
+            </div>
+            {userRating > 0 && (
+              <p className="text-green-600 text-[13px] mt-2 font-medium">
+                Thanks for rating!
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

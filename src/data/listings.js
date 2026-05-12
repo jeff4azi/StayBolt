@@ -110,11 +110,11 @@ export const listings = [
     description:
       "A beautifully finished 2-bedroom apartment with modern fittings, 24/7 power supply, and secure parking. Located in the heart of Lekki Phase 1, close to major roads and amenities.",
     image:
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=1422&fit=crop&q=80",
     gallery: [
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80",
-      "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=1422&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=1422&fit=crop&q=80",
+      "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=1422&fit=crop&q=80",
     ],
     beds: 2,
     baths: 2,

@@ -26,48 +26,95 @@ const GoogleIcon = ({ size = 20 }) => (
   </svg>
 );
 
+const features = [
+  { icon: "🏠", label: "Post listings instantly" },
+  { icon: "👁️", label: "Track views & inquiries" },
+  { icon: "💬", label: "Connect with renters" },
+];
+
 export default function AuthScreen({ onLogin }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top illustration area */}
-      <div className="bg-green-600 flex-1 flex flex-col items-center justify-center px-8 pt-16 pb-12">
-        <div className="w-20 h-20 bg-white/80 rounded-3xl flex items-center justify-center mb-6">
-          <img
-            src={logo}
-            alt="StayBolt logo"
-            className="w-14 h-14 object-contain"
-          />
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* ── Hero ── */}
+      <div className="relative flex-1 bg-green-600 overflow-hidden flex flex-col items-center justify-center px-8 pt-20 pb-16">
+        {/* Subtle background circles for depth */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-green-500/40 rounded-full" />
+        <div className="absolute -bottom-24 -left-20 w-72 h-72 bg-green-700/30 rounded-full" />
+
+        {/* Logo */}
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-lg mb-5">
+            <img
+              src={logo}
+              alt="StayBolt"
+              className="w-13 h-13 object-contain"
+            />
+          </div>
+          <h1 className="text-white text-3xl font-bold tracking-tight">
+            Stay<span className="text-green-200">Bolt</span>
+          </h1>
+          <p className="text-green-100/80 text-[14px] mt-1.5 tracking-wide uppercase text-sm font-medium">
+            The smarter way to rent
+          </p>
         </div>
-        <h1 className="text-white text-2xl font-bold text-center">
-          Stay<span className="text-green-200">Bolt</span>
-        </h1>
-        <p className="text-green-100 text-[14px] text-center mt-2">
-          The smarter way to rent
-        </p>
+
+        {/* Feature pills */}
+        <div className="relative z-10 flex flex-col gap-2.5 mt-10 w-full max-w-xs">
+          {features.map(({ icon, label }) => (
+            <div
+              key={label}
+              className="flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3"
+            >
+              <span className="text-lg leading-none">{icon}</span>
+              <span className="text-white text-[14px] font-medium">
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Bottom card */}
-      <div className="bg-white rounded-t-3xl px-6 pt-8 pb-12 shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
-        <h2 className="text-xl font-bold text-gray-900 text-center">
-          Are you an agent?
+      {/* ── Bottom sheet ── */}
+      <div className="bg-white rounded-t-[2rem] -mt-6 relative z-10 px-6 pt-8 pb-10">
+        {/* Drag handle */}
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
+
+        <h2 className="text-[22px] font-bold text-gray-900 leading-snug">
+          Agent portal
         </h2>
-        <p className="text-gray-500 text-[14px] text-center mt-2 leading-relaxed">
-          Manage your listings on StayBolt. Sign in to post properties, track
-          views, and connect with renters.
+        <p className="text-gray-500 text-[14px] mt-2 leading-relaxed">
+          Sign in to manage your listings, respond to enquiries, and grow your
+          rentals.
         </p>
 
+        {/* Google button */}
         <button
           onClick={onLogin}
-          className="mt-8 w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200 rounded-2xl py-3.5 px-4 shadow-sm active:scale-[0.98] transition-transform"
+          className="mt-7 w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-2xl py-4 px-5 shadow-sm active:scale-[0.98] transition-all duration-150 hover:border-gray-300 hover:shadow"
         >
           <GoogleIcon size={20} />
-          <span className="font-semibold text-gray-700 text-[15px]">
+          <span className="font-semibold text-gray-800 text-[15px]">
             Continue with Google
           </span>
         </button>
 
-        <p className="text-gray-400 text-[12px] text-center mt-5">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+        {/* Divider */}
+        <div className="flex items-center gap-3 mt-5">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-gray-300 text-[12px]">Agents only</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        <p className="text-gray-400 text-[12px] text-center mt-5 leading-relaxed">
+          By continuing, you agree to our{" "}
+          <span className="text-gray-500 underline underline-offset-2 cursor-pointer">
+            Terms of Service
+          </span>{" "}
+          and{" "}
+          <span className="text-gray-500 underline underline-offset-2 cursor-pointer">
+            Privacy Policy
+          </span>
+          .
         </p>
       </div>
     </div>
