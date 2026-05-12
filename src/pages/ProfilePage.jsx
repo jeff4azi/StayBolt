@@ -1,16 +1,32 @@
 import { useApp } from "../context/AppContext";
-import { agents } from "../data/listings";
 import AuthScreen from "./AuthScreen";
 import DashboardPage from "./DashboardPage";
 
-// Simulate Google login by picking a mock agent
-const MOCK_AGENT = agents[0];
-
 export default function ProfilePage() {
-  const { isLoggedIn, login } = useApp();
+  const {
+    isLoggedIn,
+    sessionReady,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+  } = useApp();
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        Loading…
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
-    return <AuthScreen onLogin={() => login(MOCK_AGENT)} />;
+    return (
+      <AuthScreen
+        onSignInWithEmail={signInWithEmail}
+        onSignUpWithEmail={signUpWithEmail}
+        onSignInWithGoogle={signInWithGoogle}
+      />
+    );
   }
 
   return <DashboardPage />;

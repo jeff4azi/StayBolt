@@ -1,83 +1,352 @@
-import { createContext, useContext, useState } from "react";
 import {
-  listings as initialListings,
-  agentReviews as initialReviews,
-} from "../data/listings";
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { mapAgentRow, mapListingFromView } from "../lib/mappers";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const AppContext = createContext(null);
 
+const GUEST_SAVED_KEY = "staybolt_guest_saved";
+
+function readGuestSavedIds() {
+  try {
+    const raw = localStorage.getItem(GUEST_SAVED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeGuestSavedIds(ids) {
+  localStorage.setItem(GUEST_SAVED_KEY, JSON.stringify(ids));
+}
+
+async function mergeGuestSavedIntoAccount(userId) {
+  const guestIds = readGuestSavedIds();
+  if (guestIds.length === 0) return;
+  for (const listingId of guestIds) {
+    await supabase.from("saved_listings").upsert(
+      { user_id: userId, listing_id: listingId },
+      { onConflict: "user_id,listing_id" },
+    );
+  }
+  localStorage.removeItem(GUEST_SAVED_KEY);
+}
+
 export function AppProvider({ children }) {
-  const [saved, setSaved] = useState([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [listings, setListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState(null);
+  const [savedIds, setSavedIds] = useState(() => readGuestSavedIds());
   const [currentAgent, setCurrentAgent] = useState(null);
-  const [listings, setListings] = useState(initialListings);
-  const [agentReviews, setAgentReviews] = useState(initialReviews);
 
-  const toggleSave = (id) => {
-    setSaved((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
-  };
+  const user = session?.user ?? null;
+  const isLoggedIn = Boolean(user);
 
-  const isSaved = (id) => saved.includes(id);
+  const refreshListings = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setListings([]);
+      setListingsLoading(false);
+      setListingsError(
+        new Error("Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env"),
+      );
+      return;
+    }
+    setListingsLoading(true);
+    setListingsError(null);
+    const { data, error } = await supabase
+      .from("listings_with_agents")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setListingsError(error);
+      setListings([]);
+    } else {
+      setListings((data || []).map(mapListingFromView));
+    }
+    setListingsLoading(false);
+  }, []);
 
-  const login = (agent) => {
-    setIsLoggedIn(true);
-    setCurrentAgent(agent);
-  };
+  const refreshSavedFromServer = useCallback(async (uid) => {
+    if (!uid || !isSupabaseConfigured()) return;
+    const { data, error } = await supabase
+      .from("saved_listings")
+      .select("listing_id")
+      .eq("user_id", uid);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setSavedIds((data || []).map((r) => r.listing_id));
+  }, []);
 
-  const logout = () => {
-    setIsLoggedIn(false);
+  const loadAgentProfile = useCallback(async (uid) => {
+    if (!uid || !isSupabaseConfigured()) {
+      setCurrentAgent(null);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("agents")
+      .select("*")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (error) {
+      console.error(error);
+      setCurrentAgent(null);
+      return;
+    }
+    setCurrentAgent(mapAgentRow(data));
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setSessionReady(true);
+      refreshListings();
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s ?? null);
+      setSessionReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s ?? null);
+    });
+
+    refreshListings();
+
+    return () => subscription.unsubscribe();
+  }, [refreshListings]);
+
+  useEffect(() => {
+    if (!sessionReady || !isSupabaseConfigured()) return;
+
+    (async () => {
+      if (user?.id) {
+        await mergeGuestSavedIntoAccount(user.id);
+        await loadAgentProfile(user.id);
+        await refreshSavedFromServer(user.id);
+      } else {
+        setCurrentAgent(null);
+        setSavedIds(readGuestSavedIds());
+      }
+    })();
+  }, [sessionReady, user?.id, loadAgentProfile, refreshSavedFromServer]);
+
+  const isSaved = useCallback(
+    (id) => savedIds.includes(id),
+    [savedIds],
+  );
+
+  const toggleSave = useCallback(
+    async (listingId) => {
+      const nextSaved = !savedIds.includes(listingId);
+
+      if (user?.id && isSupabaseConfigured()) {
+        if (nextSaved) {
+          const { error } = await supabase.from("saved_listings").insert({
+            user_id: user.id,
+            listing_id: listingId,
+          });
+          if (error) {
+            console.error(error);
+            return;
+          }
+          setSavedIds((prev) =>
+            prev.includes(listingId) ? prev : [...prev, listingId],
+          );
+        } else {
+          const { error } = await supabase
+            .from("saved_listings")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("listing_id", listingId);
+          if (error) {
+            console.error(error);
+            return;
+          }
+          setSavedIds((prev) => prev.filter((x) => x !== listingId));
+        }
+        return;
+      }
+
+      setSavedIds((prev) => {
+        const next = nextSaved
+          ? prev.includes(listingId)
+            ? prev
+            : [...prev, listingId]
+          : prev.filter((x) => x !== listingId);
+        writeGuestSavedIds(next);
+        return next;
+      });
+    },
+    [savedIds, user?.id],
+  );
+
+  const signInWithEmail = useCallback(async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    return { data, error };
+  }, []);
+
+  const signUpWithEmail = useCallback(async (email, password, fullName) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: { full_name: fullName?.trim() || "" },
+      },
+    });
+    return { data, error };
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    return { data, error };
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
     setCurrentAgent(null);
-  };
+    setSavedIds(readGuestSavedIds());
+  }, []);
 
-  const addListing = (listing) => {
-    setListings((prev) => [listing, ...prev]);
-  };
+  const addListing = useCallback(
+    async (payload) => {
+      if (!currentAgent?.id || !isSupabaseConfigured()) return { error: new Error("Not ready") };
+      const defaultImg =
+        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80";
+      const { data: row, error } = await supabase
+        .from("listings")
+        .insert({
+          agent_id: currentAgent.id,
+          title: payload.title,
+          price_text: payload.price,
+          location: payload.location,
+          description: payload.description ?? "",
+          cover_image_url: payload.image ?? defaultImg,
+          beds: payload.beds ?? 2,
+          baths: payload.baths ?? 1,
+          sqft: payload.sqft ?? 800,
+          status: "available",
+        })
+        .select("id")
+        .single();
+      if (error) return { error };
+      const cover = payload.image ?? defaultImg;
+      await supabase.from("listing_images").insert({
+        listing_id: row.id,
+        image_url: cover,
+        sort_order: 0,
+      });
+      await refreshListings();
+      return { data: row, error: null };
+    },
+    [currentAgent?.id, refreshListings],
+  );
 
-  const toggleStatus = (id) => {
-    setListings((prev) =>
-      prev.map((l) =>
-        l.id === id
-          ? { ...l, status: l.status === "available" ? "taken" : "available" }
-          : l,
-      ),
-    );
-  };
+  const updateListing = useCallback(
+    async (id, updates) => {
+      if (!isSupabaseConfigured()) return { error: new Error("Not configured") };
+      const { error } = await supabase
+        .from("listings")
+        .update({
+          title: updates.title,
+          price_text: updates.price,
+          location: updates.location,
+          description: updates.description,
+        })
+        .eq("id", id);
+      if (error) return { error };
+      await refreshListings();
+      return { error: null };
+    },
+    [refreshListings],
+  );
 
-  const updateListing = (id, updates) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...updates } : l)),
-    );
-  };
+  const toggleStatus = useCallback(
+    async (id) => {
+      const listing = listings.find((l) => l.id === id);
+      if (!listing || !isSupabaseConfigured()) return;
+      const next = listing.status === "available" ? "taken" : "available";
+      const { error } = await supabase
+        .from("listings")
+        .update({ status: next })
+        .eq("id", id);
+      if (error) {
+        console.error(error);
+        return;
+      }
+      await refreshListings();
+    },
+    [listings, refreshListings],
+  );
 
-  const addAgentReview = (agentId, review) => {
-    setAgentReviews((prev) => ({
-      ...prev,
-      [agentId]: [review, ...(prev[agentId] || [])],
-    }));
-  };
+  const value = useMemo(
+    () => ({
+      session,
+      sessionReady,
+      user,
+      isLoggedIn,
+      currentAgent,
+      listings,
+      listingsLoading,
+      listingsError,
+      saved: savedIds,
+      isSaved,
+      toggleSave,
+      refreshListings,
+      signInWithEmail,
+      signUpWithEmail,
+      signInWithGoogle,
+      signOut,
+      addListing,
+      updateListing,
+      toggleStatus,
+      supabaseConfigured: isSupabaseConfigured(),
+    }),
+    [
+      session,
+      sessionReady,
+      user,
+      isLoggedIn,
+      currentAgent,
+      listings,
+      listingsLoading,
+      listingsError,
+      savedIds,
+      isSaved,
+      toggleSave,
+      refreshListings,
+      signInWithEmail,
+      signUpWithEmail,
+      signInWithGoogle,
+      signOut,
+      addListing,
+      updateListing,
+      toggleStatus,
+    ],
+  );
 
   return (
-    <AppContext.Provider
-      value={{
-        saved,
-        toggleSave,
-        isSaved,
-        isLoggedIn,
-        currentAgent,
-        login,
-        logout,
-        listings,
-        addListing,
-        toggleStatus,
-        updateListing,
-        agentReviews,
-        addAgentReview,
-      }}
-    >
-      {children}
-    </AppContext.Provider>
+    <AppContext.Provider value={value}>{children}</AppContext.Provider>
   );
 }
 

@@ -3,7 +3,7 @@ import ListingCard from "../components/ListingCard";
 import { Bookmark } from "lucide-react";
 
 export default function SavedPage() {
-  const { listings, saved } = useApp();
+  const { listings, saved, listingsLoading } = useApp();
   const savedListings = listings.filter((l) => saved.includes(l.id));
 
   return (
@@ -20,7 +20,11 @@ export default function SavedPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-4">
-        {savedListings.length === 0 ? (
+        {listingsLoading ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-[15px]">Loading…</p>
+          </div>
+        ) : savedListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-gray-300">
             <Bookmark size={48} strokeWidth={1.2} />
             <p className="mt-4 text-[15px] font-medium text-gray-400">

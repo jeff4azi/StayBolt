@@ -13,9 +13,20 @@ import { useApp } from "../context/AppContext";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { currentAgent, listings, toggleStatus, logout } = useApp();
+  const { currentAgent, listings, toggleStatus, signOut } = useApp();
 
-  const agentListings = listings.filter((l) => l.agentId === currentAgent?.id);
+  if (!currentAgent) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center pb-24">
+        <p className="text-gray-600 font-medium">Preparing your agent profile…</p>
+        <p className="text-gray-400 text-[13px] mt-2">
+          If this takes too long, refresh the page or contact support.
+        </p>
+      </div>
+    );
+  }
+
+  const agentListings = listings.filter((l) => l.agentId === currentAgent.id);
   const totalViews = agentListings.reduce((sum, l) => sum + l.views, 0);
   const avgRating =
     agentListings.length > 0
@@ -46,7 +57,8 @@ export default function DashboardPage() {
             </div>
           </div>
           <button
-            onClick={logout}
+            type="button"
+            onClick={() => signOut()}
             className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
           >
             <LogOut size={16} className="text-gray-500" />

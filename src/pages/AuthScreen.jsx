@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Home, BarChart3, MessageSquare } from "lucide-react";
 import logo from "../assets/logo.png";
 
@@ -33,15 +34,71 @@ const features = [
   { icon: MessageSquare, label: "Connect with renters" },
 ];
 
-export default function AuthScreen({ onLogin }) {
+export default function AuthScreen({
+  onSignInWithEmail,
+  onSignUpWithEmail,
+  onSignInWithGoogle,
+}) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    if (!email.trim() || !password) {
+      setError("Enter email and password.");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const { error: err } = await onSignUpWithEmail(
+          email,
+          password,
+          fullName,
+        );
+        if (err) {
+          setError(err.message);
+          return;
+        }
+        setMessage(
+          "Check your email to confirm your account, then sign in.",
+        );
+      } else {
+        const { error: err } = await onSignInWithEmail(email, password);
+        if (err) {
+          setError(err.message);
+          return;
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      const { error: err } = await onSignInWithGoogle();
+      if (err) setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* ── Hero ── */}
       <div className="relative flex-1 bg-green-600 overflow-hidden flex flex-col items-center justify-center px-8 pt-20 pb-16">
         <div className="absolute -top-16 -right-16 w-64 h-64 bg-green-500/40 rounded-full" />
         <div className="absolute -bottom-24 -left-20 w-72 h-72 bg-green-700/30 rounded-full" />
 
-        {/* Logo */}
         <div className="relative z-10 flex flex-col items-center">
           <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-lg mb-5">
             <img
@@ -58,7 +115,6 @@ export default function AuthScreen({ onLogin }) {
           </p>
         </div>
 
-        {/* Feature pills */}
         <div className="relative z-10 flex flex-col gap-2.5 mt-10 w-full max-w-xs">
           {features.map(({ icon: Icon, label }) => (
             <div
@@ -74,7 +130,6 @@ export default function AuthScreen({ onLogin }) {
         </div>
       </div>
 
-      {/* ── Bottom sheet ── */}
       <div className="bg-white rounded-t-[2rem] -mt-6 relative z-10 px-6 pt-8 pb-10">
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
 
@@ -86,10 +141,96 @@ export default function AuthScreen({ onLogin }) {
           rentals.
         </p>
 
-        {/* Google button */}
+        <div className="flex gap-2 mt-5 p-1 bg-gray-100 rounded-xl">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setError(null);
+              setMessage(null);
+            }}
+            className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+              mode === "signin"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signup");
+              setError(null);
+              setMessage(null);
+            }}
+            className={`flex-1 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+              mode === "signup"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            Create account
+          </button>
+        </div>
+
+        <form onSubmit={handleEmailSubmit} className="mt-5 flex flex-col gap-3">
+          {mode === "signup" && (
+            <input
+              type="text"
+              autoComplete="name"
+              placeholder="Full name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-green-500"
+            />
+          )}
+          <input
+            type="email"
+            autoComplete="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-green-500"
+          />
+          <input
+            type="password"
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-[14px] outline-none focus:border-green-500"
+          />
+          {error && (
+            <p className="text-red-600 text-[13px] leading-snug">{error}</p>
+          )}
+          {message && (
+            <p className="text-green-700 text-[13px] leading-snug">{message}</p>
+          )}
+          <button
+            type="submit"
+            disabled={busy}
+            className="w-full bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-60"
+          >
+            {busy
+              ? "Please wait…"
+              : mode === "signup"
+                ? "Create account"
+                : "Sign in"}
+          </button>
+        </form>
+
+        <div className="flex items-center gap-3 mt-5">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-gray-300 text-[12px]">or</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
         <button
-          onClick={onLogin}
-          className="mt-7 w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-2xl py-4 px-5 shadow-sm active:scale-[0.98] transition-all duration-150 hover:border-gray-300 hover:shadow"
+          type="button"
+          onClick={handleGoogle}
+          disabled={busy}
+          className="mt-5 w-full flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-2xl py-4 px-5 shadow-sm active:scale-[0.98] transition-all duration-150 hover:border-gray-300 hover:shadow disabled:opacity-60"
         >
           <GoogleIcon size={20} />
           <span className="font-semibold text-gray-800 text-[15px]">
@@ -97,7 +238,6 @@ export default function AuthScreen({ onLogin }) {
           </span>
         </button>
 
-        {/* Divider */}
         <div className="flex items-center gap-3 mt-5">
           <div className="flex-1 h-px bg-gray-100" />
           <span className="text-gray-300 text-[12px]">Agents only</span>
@@ -105,15 +245,7 @@ export default function AuthScreen({ onLogin }) {
         </div>
 
         <p className="text-gray-400 text-[12px] text-center mt-5 leading-relaxed">
-          By continuing, you agree to our{" "}
-          <span className="text-gray-500 underline underline-offset-2 cursor-pointer">
-            Terms of Service
-          </span>{" "}
-          and{" "}
-          <span className="text-gray-500 underline underline-offset-2 cursor-pointer">
-            Privacy Policy
-          </span>
-          .
+          By continuing, you agree to our Terms of Service and Privacy Policy.
         </p>
       </div>
     </div>

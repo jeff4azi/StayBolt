@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,17 +16,18 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { agents } from "../data/listings";
+import { supabase } from "../lib/supabase";
 import StarRating from "../components/StarRating";
 
-// ── Fullscreen lightbox ──────────────────────────────────────────────
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+
 function Lightbox({ images, startIndex, onClose }) {
   const [current, setCurrent] = useState(startIndex);
 
   const prev = () => setCurrent((c) => (c - 1 + images.length) % images.length);
   const next = () => setCurrent((c) => (c + 1) % images.length);
 
-  // keyboard navigation
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "ArrowLeft") prev();
@@ -37,7 +38,6 @@ function Lightbox({ images, startIndex, onClose }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // lock body scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => (document.body.style.overflow = "");
@@ -45,7 +45,6 @@ function Lightbox({ images, startIndex, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
         <span className="text-white/60 text-[13px] font-medium">
           {current + 1} / {images.length}
@@ -58,7 +57,6 @@ function Lightbox({ images, startIndex, onClose }) {
         </button>
       </div>
 
-      {/* Main image */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
         <img
           key={current}
@@ -66,7 +64,6 @@ function Lightbox({ images, startIndex, onClose }) {
           alt=""
           className="max-w-full max-h-full object-contain animate-fade-in"
         />
-        {/* Prev / Next */}
         {images.length > 1 && (
           <>
             <button
@@ -85,7 +82,6 @@ function Lightbox({ images, startIndex, onClose }) {
         )}
       </div>
 
-      {/* Bottom strip */}
       {images.length > 1 && (
         <div className="flex gap-2 px-4 py-4 overflow-x-auto shrink-0">
           {images.map((img, i) => (
@@ -105,17 +101,72 @@ function Lightbox({ images, startIndex, onClose }) {
   );
 }
 
-// ── Main page ────────────────────────────────────────────────────────
 export default function PropertyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { listings, isSaved, toggleSave } = useApp();
+  const { listings, listingsLoading, isSaved, toggleSave, user, refreshListings } =
+    useApp();
   const [activeImg, setActiveImg] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [ratingSaving, setRatingSaving] = useState(false);
+  const [agentRatingRow, setAgentRatingRow] = useState(null);
+  const viewRecorded = useRef(false);
 
   const listing = listings.find((l) => l.id === id);
+
+  useEffect(() => {
+    viewRecorded.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || viewRecorded.current) return;
+    const key = `staybolt_view_${id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    viewRecorded.current = true;
+    supabase.rpc("increment_listing_views", { target_listing_id: id }).catch(() => {
+      /* RPC may be missing grants in dev */
+    });
+  }, [id]);
+
+  useEffect(() => {
+    setActiveImg(0);
+    setImgLoaded(false);
+    setUserRating(0);
+  }, [listing?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !listing?.id) return;
+    supabase
+      .from("property_ratings")
+      .select("rating")
+      .eq("listing_id", listing.id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.rating) setUserRating(data.rating);
+      });
+  }, [user?.id, listing?.id]);
+
+  useEffect(() => {
+    if (!listing?.agentId) return;
+    supabase
+      .from("agents")
+      .select("rating, reviews_count")
+      .eq("id", listing.agentId)
+      .maybeSingle()
+      .then(({ data }) => setAgentRatingRow(data));
+  }, [listing?.agentId]);
+
+  if (listingsLoading && !listing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-400">
+        Loading…
+      </div>
+    );
+  }
   if (!listing) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-400">
@@ -124,7 +175,9 @@ export default function PropertyPage() {
     );
   }
 
-  const agent = agents.find((a) => a.id === listing.agentId);
+  const agentName = listing.agentName ?? "Agent";
+  const agentAvatar = listing.agentAvatarUrl || FALLBACK_IMG;
+  const agentPhone = listing.agentPhone?.replace(/\D/g, "") || "";
   const saved = isSaved(listing.id);
 
   const handleShare = () => {
@@ -133,6 +186,38 @@ export default function PropertyPage() {
     );
     alert("Link copied!");
   };
+
+  const submitRating = async (stars) => {
+    if (!user?.id) {
+      alert("Sign in to rate properties.");
+      navigate("/profile");
+      return;
+    }
+    setRatingSaving(true);
+    const { error } = await supabase.from("property_ratings").upsert(
+      {
+        listing_id: listing.id,
+        user_id: user.id,
+        rating: stars,
+      },
+      { onConflict: "listing_id,user_id" },
+    );
+    setRatingSaving(false);
+    if (error) {
+      console.error(error);
+      alert(error.message || "Could not save rating");
+      return;
+    }
+    setUserRating(stars);
+    refreshListings();
+  };
+
+  const waLink =
+    agentPhone.length > 0
+      ? `https://wa.me/${agentPhone}?text=${encodeURIComponent(
+          `Hello ${agentName},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${window.location.origin}/property/${listing.id}\n\nKindly get back to me at your earliest convenience. Thank you.`,
+        )}`
+      : null;
 
   return (
     <>
@@ -145,9 +230,7 @@ export default function PropertyPage() {
       )}
 
       <div className="min-h-screen bg-gray-50 pb-24">
-        {/* ── Hero image ── */}
         <div className="relative w-full aspect-[4/3] bg-gray-200 overflow-hidden">
-          {/* Blur placeholder */}
           {!imgLoaded && (
             <div className="absolute inset-0 bg-gray-200 animate-pulse" />
           )}
@@ -159,25 +242,24 @@ export default function PropertyPage() {
             }`}
             onLoad={() => setImgLoaded(true)}
             onError={(e) => {
-              e.target.src =
-                "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+              e.target.src = FALLBACK_IMG;
               setImgLoaded(true);
             }}
           />
 
-          {/* Gradient scrim for legibility */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
 
-          {/* Top bar */}
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5">
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5 pointer-events-none">
             <button
+              type="button"
               onClick={() => navigate(-1)}
-              className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
+              className="pointer-events-auto w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
             >
               <ArrowLeft size={18} className="text-gray-700" />
             </button>
-            <div className="flex gap-2">
+            <div className="flex gap-2 pointer-events-auto">
               <button
+                type="button"
                 onClick={() => toggleSave(listing.id)}
                 className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
               >
@@ -189,6 +271,7 @@ export default function PropertyPage() {
                 />
               </button>
               <button
+                type="button"
                 onClick={handleShare}
                 className="w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
               >
@@ -197,8 +280,7 @@ export default function PropertyPage() {
             </div>
           </div>
 
-          {/* Bottom row: status + zoom hint */}
-          <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
+          <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none">
             <span
               className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                 listing.status === "available"
@@ -208,31 +290,23 @@ export default function PropertyPage() {
             >
               {listing.status === "available" ? "Available" : "Taken"}
             </span>
-            {/* Tap to expand hint */}
             <button
+              type="button"
               onClick={() => setLightboxOpen(true)}
-              className="flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[12px] font-medium px-3 py-1.5 rounded-full active:bg-black/60"
+              className="pointer-events-auto flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[12px] font-medium px-3 py-1.5 rounded-full active:bg-black/60"
             >
               <ZoomIn size={13} />
               {listing.gallery.length} photos
             </button>
           </div>
-
-          {/* Invisible tap target over the image to open lightbox */}
-          <button
-            onClick={() => setLightboxOpen(true)}
-            className="absolute inset-0 w-full h-full"
-            aria-label="View full screen"
-          />
-          {/* Re-render top bar above tap target */}
         </div>
 
-        {/* ── Thumbnail strip ── */}
         {listing.gallery.length > 1 && (
           <div className="flex gap-2 px-4 mt-3 max-w-md mx-auto overflow-x-auto pb-1">
             {listing.gallery.map((img, i) => (
               <button
                 key={i}
+                type="button"
                 onClick={() => {
                   setActiveImg(i);
                   setImgLoaded(false);
@@ -247,7 +321,6 @@ export default function PropertyPage() {
           </div>
         )}
 
-        {/* ── Details ── */}
         <div className="max-w-md mx-auto px-4 mt-4">
           <h1 className="text-xl font-bold text-gray-900">{listing.title}</h1>
           <div className="flex items-center gap-1 mt-1 text-gray-500 text-[13px]">
@@ -258,7 +331,6 @@ export default function PropertyPage() {
             {listing.price}
           </p>
 
-          {/* Stats */}
           <div className="flex gap-4 mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex flex-col items-center flex-1">
               <Bed size={18} className="text-green-600" />
@@ -285,7 +357,6 @@ export default function PropertyPage() {
             </div>
           </div>
 
-          {/* Description */}
           <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <h2 className="font-semibold text-gray-800 mb-2">Description</h2>
             <p className="text-gray-500 text-[14px] leading-relaxed">
@@ -293,44 +364,45 @@ export default function PropertyPage() {
             </p>
           </div>
 
-          {/* Agent */}
           <div
-            onClick={() => navigate(`/agent/${agent.id}`)}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/agent/${listing.agentId}`)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ")
+                navigate(`/agent/${listing.agentId}`);
+            }}
             className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3 cursor-pointer active:bg-gray-50 transition-colors"
           >
             <img
-              src={agent.avatar}
-              alt={agent.name}
+              src={agentAvatar}
+              alt={agentName}
               className="w-12 h-12 rounded-full object-cover border-2 border-green-100"
             />
             <div className="flex-1">
               <p className="font-semibold text-gray-800 text-[14px]">
-                {agent.name}
+                {agentName}
               </p>
-              <StarRating rating={agent.rating} size={13} />
+              <StarRating
+                rating={Number(agentRatingRow?.rating) || 0}
+                size={13}
+              />
             </div>
             <span className="text-green-600 text-[13px] font-medium">
               View Profile →
             </span>
           </div>
 
-          {/* WhatsApp CTA */}
           <button
-            onClick={() => {
-              const propertyUrl = `${window.location.origin}/property/${listing.id}`;
-              const message = `Hello ${agent.name},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${propertyUrl}\n\nKindly get back to me at your earliest convenience. Thank you.`;
-              window.open(
-                `https://wa.me/${agent.phone}?text=${encodeURIComponent(message)}`,
-                "_blank",
-              );
-            }}
-            className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
+            type="button"
+            disabled={!waLink}
+            onClick={() => waLink && window.open(waLink, "_blank")}
+            className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MessageCircle size={18} />
-            Contact Agent on WhatsApp
+            {waLink ? "Contact Agent on WhatsApp" : "Phone not available"}
           </button>
 
-          {/* Rate this property */}
           <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <h2 className="font-semibold text-gray-800 mb-3">
               Rate this property
@@ -339,8 +411,10 @@ export default function PropertyPage() {
               {[1, 2, 3, 4, 5].map((s) => (
                 <button
                   key={s}
-                  onClick={() => setUserRating(s)}
-                  className="active:scale-90 transition-transform"
+                  type="button"
+                  disabled={ratingSaving}
+                  onClick={() => submitRating(s)}
+                  className="active:scale-90 transition-transform disabled:opacity-50"
                 >
                   <Star
                     size={28}
@@ -356,6 +430,11 @@ export default function PropertyPage() {
             {userRating > 0 && (
               <p className="text-green-600 text-[13px] mt-2 font-medium">
                 Thanks for rating!
+              </p>
+            )}
+            {!user && (
+              <p className="text-gray-400 text-[12px] mt-2">
+                Sign in to submit a rating.
               </p>
             )}
           </div>

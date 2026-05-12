@@ -1,13 +1,16 @@
 import { Bookmark, Share2, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import { agents } from "../data/listings";
+
+const FALLBACK_AVATAR =
+  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
 
 export default function ListingCard({ listing }) {
   const navigate = useNavigate();
   const { isSaved, toggleSave } = useApp();
-  const agent = agents.find((a) => a.id === listing.agentId);
   const saved = isSaved(listing.id);
+  const agentName = listing.agentName ?? "Agent";
+  const agentAvatar = listing.agentAvatarUrl || FALLBACK_AVATAR;
 
   const handleShare = (e) => {
     e.stopPropagation();
@@ -27,7 +30,6 @@ export default function ListingCard({ listing }) {
       onClick={() => navigate(`/property/${listing.id}`)}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden active:scale-[0.98] transition-transform duration-150 cursor-pointer"
     >
-      {/* Image */}
       <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
         <img
           src={listing.image}
@@ -35,11 +37,9 @@ export default function ListingCard({ listing }) {
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
           loading="lazy"
           onError={(e) => {
-            e.target.src =
-              "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+            e.target.src = FALLBACK_AVATAR;
           }}
         />
-        {/* Status badge */}
         <span
           className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full ${
             listing.status === "available"
@@ -49,7 +49,6 @@ export default function ListingCard({ listing }) {
         >
           {listing.status === "available" ? "Available" : "Taken"}
         </span>
-        {/* Actions */}
         <div className="absolute top-3 right-3 flex gap-2">
           <button
             onClick={handleSave}
@@ -71,7 +70,6 @@ export default function ListingCard({ listing }) {
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 text-[15px] leading-snug">
           {listing.title}
@@ -86,11 +84,11 @@ export default function ListingCard({ listing }) {
           </span>
           <div className="flex items-center gap-2">
             <img
-              src={agent?.avatar}
-              alt={agent?.name}
+              src={agentAvatar}
+              alt={agentName}
               className="w-6 h-6 rounded-full object-cover border border-gray-200"
             />
-            <span className="text-gray-500 text-[12px]">{agent?.name}</span>
+            <span className="text-gray-500 text-[12px]">{agentName}</span>
           </div>
         </div>
       </div>

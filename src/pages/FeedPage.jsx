@@ -7,7 +7,8 @@ import logo from "../assets/logo.png";
 const FILTERS = ["all", "available", "taken"];
 
 export default function FeedPage() {
-  const { listings } = useApp();
+  const { listings, listingsLoading, listingsError, supabaseConfigured } =
+    useApp();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [collapsed, setCollapsed] = useState(false);
@@ -104,7 +105,24 @@ export default function FeedPage() {
 
       {/* Listings */}
       <div className="max-w-md mx-auto px-4 pt-4 flex flex-col gap-4">
-        {filtered.length === 0 ? (
+        {!supabaseConfigured && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-[13px] rounded-2xl px-4 py-3">
+            Add <code className="text-[12px]">VITE_SUPABASE_URL</code> and{" "}
+            <code className="text-[12px]">VITE_SUPABASE_ANON_KEY</code> to{" "}
+            <code className="text-[12px]">.env</code>, then restart the dev
+            server.
+          </div>
+        )}
+        {listingsError && (
+          <div className="bg-red-50 border border-red-200 text-red-800 text-[13px] rounded-2xl px-4 py-3">
+            {listingsError.message || "Could not load listings."}
+          </div>
+        )}
+        {listingsLoading ? (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-lg font-medium">Loading listings…</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-lg font-medium">No listings found</p>
             <p className="text-sm mt-1">Try a different search or filter</p>
