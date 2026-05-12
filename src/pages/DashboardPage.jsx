@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -8,17 +9,28 @@ import {
   ToggleLeft,
   ToggleRight,
   Pencil,
+  UserCog,
+  Trash2,
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { deleteListing } from "../lib/api";
+
+const FALLBACK_AVATAR =
+  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { currentAgent, listings, toggleStatus, signOut } = useApp();
+  const { currentAgent, listings, toggleStatus, signOut, refreshListings } =
+    useApp();
+
+  const [deletingId, setDeletingId] = useState(null);
 
   if (!currentAgent) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center pb-24">
-        <p className="text-gray-600 font-medium">Preparing your agent profile…</p>
+        <p className="text-gray-600 font-medium">
+          Preparing your agent profile…
+        </p>
         <p className="text-gray-400 text-[13px] mt-2">
           If this takes too long, refresh the page or contact support.
         </p>
@@ -36,6 +48,24 @@ export default function DashboardPage() {
         ).toFixed(1)
       : "—";
 
+  const handleDelete = async (listingId) => {
+    if (
+      !window.confirm(
+        "Delete this listing and all its images? This cannot be undone.",
+      )
+    )
+      return;
+    setDeletingId(listingId);
+    try {
+      await deleteListing(listingId);
+      await refreshListings();
+    } catch (err) {
+      alert(err.message ?? "Could not delete listing");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
@@ -43,27 +73,67 @@ export default function DashboardPage() {
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src={currentAgent?.avatar}
-              alt={currentAgent?.name}
+              src={currentAgent.avatar || FALLBACK_AVATAR}
+              alt={currentAgent.name}
               className="w-11 h-11 rounded-full object-cover border-2 border-green-100"
+              onError={(e) => {
+                e.target.src = FALLBACK_AVATAR;
+              }}
             />
             <div>
               <p className="font-bold text-gray-900 text-[15px]">
-                {currentAgent?.name}
+                {currentAgent.name}
               </p>
               <p className="text-green-600 text-[12px] font-medium">
                 Agent Dashboard
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-          >
-            <LogOut size={16} className="text-gray-500" />
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Edit profile */}
+            <button
+              type="button"
+              onClick={() => navigate("/edit-profile")}
+              className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              title="Edit profile"
+            >
+              <UserCog size={16} className="text-gray-500" />
+            </button>
+            {/* Sign out */}
+            <button
+              type="button"
+              onClick={() => signOut()}
+              className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              title="Sign out"
+            >
+              <LogOut size={16} className="text-gray-500" />
+            </button>
+          </div>
         </div>
+
+        {/* Agent bio / contact snippet */}
+        {(currentAgent.bio || currentAgent.phone || currentAgent.email) && (
+          <div className="max-w-md mx-auto mt-3 px-1">
+            {currentAgent.bio && (
+              <p className="text-gray-500 text-[13px] leading-relaxed line-clamp-2">
+                {currentAgent.bio}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+              {currentAgent.phone && (
+                <span className="text-gray-400 text-[12px]">
+                  📞 {currentAgent.phone}
+                </span>
+              )}
+              {currentAgent.email && (
+                <span className="text-gray-400 text-[12px]">
+                  ✉️ {currentAgent.email}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="max-w-md mx-auto px-4 mt-5">
@@ -161,13 +231,24 @@ export default function DashboardPage() {
                       </>
                     )}
                   </button>
-                  <button
-                    onClick={() => navigate(`/edit-property/${l.id}`)}
-                    className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium active:scale-95 transition-transform"
-                  >
-                    <Pencil size={13} />
-                    Edit
-                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate(`/edit-property/${l.id}`)}
+                      className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium active:scale-95 transition-transform"
+                    >
+                      <Pencil size={13} />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(l.id)}
+                      disabled={deletingId === l.id}
+                      className="flex items-center gap-1.5 text-[12px] text-red-400 font-medium active:scale-95 transition-transform disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      {deletingId === l.id ? "Deleting…" : "Delete"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

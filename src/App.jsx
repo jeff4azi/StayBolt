@@ -8,6 +8,7 @@ import SavedPage from "./pages/SavedPage";
 import ProfilePage from "./pages/ProfilePage";
 import AddPropertyPage from "./pages/AddPropertyPage";
 import EditPropertyPage from "./pages/EditPropertyPage";
+import EditProfilePage from "./pages/EditProfilePage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/add-property" element={<AddPropertyPage />} />
             <Route path="/edit-property/:id" element={<EditPropertyPage />} />
+            <Route path="/edit-profile" element={<EditProfilePage />} />
           </Routes>
           <BottomNav />
         </div>

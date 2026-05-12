@@ -32,10 +32,12 @@ async function mergeGuestSavedIntoAccount(userId) {
   const guestIds = readGuestSavedIds();
   if (guestIds.length === 0) return;
   for (const listingId of guestIds) {
-    await supabase.from("saved_listings").upsert(
-      { user_id: userId, listing_id: listingId },
-      { onConflict: "user_id,listing_id" },
-    );
+    await supabase
+      .from("saved_listings")
+      .upsert(
+        { user_id: userId, listing_id: listingId },
+        { onConflict: "user_id,listing_id" },
+      );
   }
   localStorage.removeItem(GUEST_SAVED_KEY);
 }
@@ -145,10 +147,7 @@ export function AppProvider({ children }) {
     })();
   }, [sessionReady, user?.id, loadAgentProfile, refreshSavedFromServer]);
 
-  const isSaved = useCallback(
-    (id) => savedIds.includes(id),
-    [savedIds],
-  );
+  const isSaved = useCallback((id) => savedIds.includes(id), [savedIds]);
 
   const toggleSave = useCallback(
     async (listingId) => {
@@ -230,9 +229,11 @@ export function AppProvider({ children }) {
 
   const addListing = useCallback(
     async (payload) => {
-      if (!currentAgent?.id || !isSupabaseConfigured()) return { error: new Error("Not ready") };
+      if (!currentAgent?.id || !isSupabaseConfigured())
+        return { error: new Error("Not ready") };
       const defaultImg =
         "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80";
+      const coverUrl = payload.image ?? defaultImg;
       const { data: row, error } = await supabase
         .from("listings")
         .insert({
@@ -241,7 +242,7 @@ export function AppProvider({ children }) {
           price_text: payload.price,
           location: payload.location,
           description: payload.description ?? "",
-          cover_image_url: payload.image ?? defaultImg,
+          cover_image_url: coverUrl,
           beds: payload.beds ?? 2,
           baths: payload.baths ?? 1,
           sqft: payload.sqft ?? 800,
@@ -250,12 +251,17 @@ export function AppProvider({ children }) {
         .select("id")
         .single();
       if (error) return { error };
-      const cover = payload.image ?? defaultImg;
-      await supabase.from("listing_images").insert({
+
+      // Insert gallery images — use galleryUrls if provided, else just the cover
+      const galleryUrls =
+        payload.galleryUrls?.length > 0 ? payload.galleryUrls : [coverUrl];
+      const galleryRows = galleryUrls.map((url, i) => ({
         listing_id: row.id,
-        image_url: cover,
-        sort_order: 0,
-      });
+        image_url: url,
+        sort_order: i,
+      }));
+      await supabase.from("listing_images").insert(galleryRows);
+
       await refreshListings();
       return { data: row, error: null };
     },
@@ -264,7 +270,8 @@ export function AppProvider({ children }) {
 
   const updateListing = useCallback(
     async (id, updates) => {
-      if (!isSupabaseConfigured()) return { error: new Error("Not configured") };
+      if (!isSupabaseConfigured())
+        return { error: new Error("Not configured") };
       const { error } = await supabase
         .from("listings")
         .update({
@@ -299,6 +306,28 @@ export function AppProvider({ children }) {
     [listings, refreshListings],
   );
 
+  /**
+   * Update the current agent's profile fields.
+   * Pass only the fields you want to change.
+   * @param {Partial<{name,bio,phone,email,avatar_url}>} updates
+   */
+  const updateAgentProfile = useCallback(
+    async (updates) => {
+      if (!currentAgent?.id || !isSupabaseConfigured()) {
+        return { error: new Error("Not ready") };
+      }
+      const { error } = await supabase
+        .from("agents")
+        .update(updates)
+        .eq("id", currentAgent.id);
+      if (error) return { error };
+      // Re-fetch so currentAgent reflects the latest data
+      await loadAgentProfile(user?.id);
+      return { error: null };
+    },
+    [currentAgent?.id, user?.id, loadAgentProfile],
+  );
+
   const value = useMemo(
     () => ({
       session,
@@ -320,6 +349,8 @@ export function AppProvider({ children }) {
       addListing,
       updateListing,
       toggleStatus,
+      updateAgentProfile,
+      refreshAgentProfile: () => loadAgentProfile(user?.id),
       supabaseConfigured: isSupabaseConfigured(),
     }),
     [
@@ -342,12 +373,12 @@ export function AppProvider({ children }) {
       addListing,
       updateListing,
       toggleStatus,
+      updateAgentProfile,
+      loadAgentProfile,
     ],
   );
 
-  return (
-    <AppContext.Provider value={value}>{children}</AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {
