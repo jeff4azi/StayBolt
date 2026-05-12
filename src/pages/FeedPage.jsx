@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import ListingCard from "../components/ListingCard";
+import logo from "../assets/logo.png";
 
 const FILTERS = ["all", "available", "taken"];
 const COLLAPSE_THRESHOLD = 60;
@@ -19,7 +20,10 @@ export default function FeedPage() {
       if (currentY > COLLAPSE_THRESHOLD && currentY > lastScrollY.current) {
         // Scrolling down past threshold — collapse
         setCollapsed(true);
-      } else if (currentY < lastScrollY.current || currentY <= COLLAPSE_THRESHOLD) {
+      } else if (
+        currentY < lastScrollY.current ||
+        currentY <= COLLAPSE_THRESHOLD
+      ) {
         // Scrolling up or near top — expand
         setCollapsed(false);
       }
@@ -33,8 +37,7 @@ export default function FeedPage() {
   const filtered = listings.filter((l) => {
     const q = query.toLowerCase();
     const matchesQuery =
-      l.title.toLowerCase().includes(q) ||
-      l.location.toLowerCase().includes(q);
+      l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
     const matchesFilter = filter === "all" || l.status === filter;
     return matchesQuery && matchesFilter;
   });
@@ -54,10 +57,19 @@ export default function FeedPage() {
               collapsed ? "max-h-0 opacity-0 mb-0" : "max-h-16 opacity-100 mb-3"
             }`}
           >
-            <h1 className="text-xl font-bold text-gray-900">
-              Stay<span className="text-green-600">Bolt</span>
-            </h1>
-            <p className="text-gray-400 text-[13px]">Find your perfect home</p>
+            <div className="flex items-center gap-3">
+              <img
+                src={logo}
+                alt="StayBolt logo"
+                className="w-9 h-9 rounded-xl"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">StayBolt</h1>
+                <p className="text-gray-400 text-[13px]">
+                  Find your perfect home
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Search — always visible, compact when collapsed */}
