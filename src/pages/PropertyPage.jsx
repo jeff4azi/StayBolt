@@ -129,13 +129,24 @@ export default function PropertyPage() {
   useEffect(() => {
     if (!id || viewRecorded.current) return;
     const key = `staybolt_view_${id}`;
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, "1");
+    if (sessionStorage.getItem(key)) {
+      console.log("[views] skipped — already recorded this session:", id);
+      return;
+    }
+
     viewRecorded.current = true;
+    console.log("[views] calling increment_listing_views for:", id);
+
     supabase
       .rpc("increment_listing_views", { target_listing_id: id })
-      .catch(() => {
-        /* RPC may be missing grants in dev */
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[views] RPC error:", error.message, error);
+          viewRecorded.current = false;
+        } else {
+          console.log("[views] incremented successfully, response:", data);
+          sessionStorage.setItem(key, "1");
+        }
       });
   }, [id]);
 
