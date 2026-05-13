@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ImagePlus } from "lucide-react";
+import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { uploadImage } from "../lib/api";
 import { PAYMENT_TYPES, PAYMENT_TYPE_LABELS, toAmount } from "../lib/pricing";
 
 const ELECTRICITY_OPTIONS = [
@@ -27,6 +28,7 @@ export default function EditPropertyPage() {
     isLoggedIn,
     sessionReady,
   } = useApp();
+  const fileInputRef = useRef(null);
 
   const listing = listings.find((l) => l.id === id);
 
@@ -41,8 +43,10 @@ export default function EditPropertyPage() {
     electricityStatus: "moderate",
     waterSupply: "borehole",
   });
+  const [imageFiles, setImageFiles] = useState([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!sessionReady || isLoggedIn) return;
@@ -62,7 +66,30 @@ export default function EditPropertyPage() {
       electricityStatus: listing.electricityStatus ?? "moderate",
       waterSupply: listing.waterSupply ?? "borehole",
     });
+
+    // Initialize images from existing listing
+    const existingImages = [];
+    if (listing.image) {
+      existingImages.push({ url: listing.image, isExisting: true });
+    }
+    if (listing.gallery && listing.gallery.length > 1) {
+      // Skip the first one since it's the cover image
+      listing.gallery.slice(1).forEach((url) => {
+        existingImages.push({ url, isExisting: true });
+      });
+    }
+    setImageFiles(existingImages);
   }, [listing]);
+
+  useEffect(() => {
+    return () => {
+      imageFiles.forEach((entry) => {
+        if (entry.preview && !entry.isExisting) {
+          URL.revokeObjectURL(entry.preview);
+        }
+      });
+    };
+  }, [imageFiles]);
 
   if (sessionReady && !isLoggedIn) return null;
 
@@ -106,6 +133,28 @@ export default function EditPropertyPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleFilePick = (e) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const newEntries = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      isExisting: false,
+    }));
+    setImageFiles((prev) => [...prev, ...newEntries]);
+    e.target.value = "";
+  };
+
+  const removeImage = (index) => {
+    setImageFiles((prev) => {
+      const entry = prev[index];
+      if (entry.preview && !entry.isExisting) {
+        URL.revokeObjectURL(entry.preview);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -121,6 +170,51 @@ export default function EditPropertyPage() {
       (needsFirstPayment && firstPaymentAmount === null)
     )
       return;
+
+    setUploading(true);
+
+    // Separate existing and new images
+    const existingImages = imageFiles.filter((entry) => entry.isExisting);
+    const newImageFiles = imageFiles.filter((entry) => !entry.isExisting);
+
+    let coverUrl = null;
+    let galleryUrls = [];
+
+    try {
+      // Upload new images
+      if (newImageFiles.length > 0) {
+        const results = await Promise.all(
+          newImageFiles.map((entry) =>
+            uploadImage(entry.file, "staybolt/listings"),
+          ),
+        );
+        const newUrls = results.map((r) => r.image_url);
+
+        // First new image becomes cover if no existing images, otherwise add to gallery
+        if (existingImages.length === 0 && newUrls.length > 0) {
+          coverUrl = newUrls[0];
+          galleryUrls = newUrls.slice(1);
+        } else {
+          galleryUrls = [
+            ...existingImages.map((entry) => entry.url),
+            ...newUrls,
+          ];
+          coverUrl =
+            existingImages.length > 0 ? existingImages[0].url : newUrls[0];
+        }
+      } else {
+        // No new images, use existing ones
+        coverUrl = existingImages.length > 0 ? existingImages[0].url : null;
+        galleryUrls = existingImages.slice(1).map((entry) => entry.url);
+      }
+    } catch (err) {
+      setError(err.message ?? "Image upload failed");
+      setUploading(false);
+      return;
+    }
+
+    setUploading(false);
+
     const { error: err } = await updateListing(id, {
       title: form.title,
       paymentType: form.paymentType,
@@ -128,6 +222,8 @@ export default function EditPropertyPage() {
       yearlyRentAmount,
       location: form.location,
       description: form.description,
+      image: coverUrl,
+      galleryUrls,
       minutesToCampus: Number(form.minutesToCampus) || 0,
       electricityStatus: form.electricityStatus,
       waterSupply: form.waterSupply,
@@ -164,17 +260,64 @@ export default function EditPropertyPage() {
         onSubmit={handleSubmit}
         className="max-w-md mx-auto px-4 mt-5 flex flex-col gap-4"
       >
-        {/* Cover image preview */}
-        <div className="relative rounded-2xl overflow-hidden h-40">
-          <img
-            src={listing.image}
-            alt={listing.title}
-            className="w-full h-full object-cover"
+        {/* Image picker */}
+        <div>
+          {imageFiles.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {imageFiles.map((entry, i) => (
+                <div
+                  key={entry.url || entry.preview}
+                  className="relative shrink-0 w-24 h-20 rounded-xl overflow-hidden border border-gray-200"
+                >
+                  <img
+                    src={entry.preview || entry.url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                  {i === 0 && (
+                    <span className="absolute bottom-0 left-0 right-0 bg-green-600/80 text-white text-[9px] font-semibold text-center py-0.5">
+                      Cover
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center"
+                  >
+                    <X size={10} className="text-white" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="shrink-0 w-24 h-20 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 active:bg-gray-50 transition-colors"
+              >
+                <ImagePlus size={18} className="text-gray-300" />
+                <span className="text-gray-300 text-[10px]">Add more</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-white rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center py-10 gap-2 active:bg-gray-50 transition-colors"
+            >
+              <ImagePlus size={28} className="text-gray-300" />
+              <p className="text-gray-400 text-[13px]">Tap to upload images</p>
+              <p className="text-gray-300 text-[11px]">
+                First image becomes the cover photo
+              </p>
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFilePick}
           />
-          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-1">
-            <ImagePlus size={24} className="text-white" />
-            <p className="text-white text-[12px] font-medium">Cover image</p>
-          </div>
         </div>
 
         {/* Title / Location */}
@@ -335,9 +478,14 @@ export default function EditPropertyPage() {
 
         <button
           type="submit"
-          className="w-full bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
+          disabled={uploading || saved}
+          className="w-full bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {saved ? "Changes Saved!" : "Save Changes"}
+          {uploading
+            ? "Uploading..."
+            : saved
+              ? "Changes Saved!"
+              : "Save Changes"}
         </button>
       </form>
     </div>

@@ -1,7 +1,7 @@
 import { Bookmark, Share2, MapPin, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-import PricingDisplay from "./PricingDisplay";
+import { formatCurrency } from "../lib/pricing";
 
 const FALLBACK_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -12,6 +12,7 @@ export default function ListingCard({ listing }) {
   const saved = isSaved(listing.id);
   const agentName = listing.agentName ?? "Agent";
   const agentAvatar = listing.agentAvatarUrl || FALLBACK_AVATAR;
+  const annualRent = formatCurrency(listing.yearlyRentAmount);
 
   const handleShare = (e) => {
     e.stopPropagation();
@@ -94,7 +95,19 @@ export default function ListingCard({ listing }) {
         </div>
 
         <div className="mt-1.5 pt-1.5 border-t border-gray-50 flex items-center justify-between">
-          <PricingDisplay listing={listing} compact />
+          <p className="leading-tight">
+            <span className="text-[11px] font-medium text-gray-500">
+              Annual rent:{" "}
+            </span>
+            <span className="text-[13px] font-bold text-green-600">
+              {annualRent || "Unavailable"}
+            </span>
+            {annualRent && (
+              <span className="text-[13px] font-bold text-green-600">
+                /year
+              </span>
+            )}
+          </p>
 
           <div className="flex flex-col items-end gap-1">
             {/* Rating */}

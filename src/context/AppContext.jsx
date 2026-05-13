@@ -283,6 +283,8 @@ export function AppProvider({ children }) {
           yearly_rent_amount: updates.yearlyRentAmount,
           location: updates.location,
           description: updates.description,
+          cover_image_url: updates.image,
+          gallery: updates.galleryUrls || [],
           minutes_to_campus: updates.minutesToCampus,
           electricity_status: updates.electricityStatus,
           water_supply: updates.waterSupply,
