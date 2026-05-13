@@ -43,6 +43,13 @@ export async function uploadImage(file, folder = "staybolt") {
 }
 
 /**
+ * Delete an image from Cloudinary by its URL (backend extracts the public_id).
+ */
+export async function deleteImageByUrl(url) {
+  return request("DELETE", "/delete-image-by-url", { url });
+}
+
+/**
  * Delete an image from Cloudinary by its public_id.
  */
 export async function deleteImage(publicId) {

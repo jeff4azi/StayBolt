@@ -47,6 +47,53 @@ export default function AddPropertyPage() {
     );
   }
 
+  // Block agents who haven't added a phone number yet
+  if (currentAgent && !currentAgent.phone?.trim()) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="bg-white px-4 pt-5 pb-4 shadow-sm sticky top-0 z-40">
+          <div className="max-w-md mx-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <ArrowLeft size={18} className="text-gray-700" />
+            </button>
+            <h1 className="text-lg font-bold text-gray-900">Add Property</h1>
+          </div>
+        </div>
+
+        <div className="max-w-md mx-auto px-4 mt-16 flex flex-col items-center text-center gap-4">
+          <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center">
+            <span className="text-3xl">📞</span>
+          </div>
+          <h2 className="text-[17px] font-bold text-gray-900">
+            Phone number required
+          </h2>
+          <p className="text-gray-500 text-[14px] leading-relaxed max-w-xs">
+            Renters need a way to contact you. Add a WhatsApp / phone number to
+            your profile before listing a property.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/edit-profile")}
+            className="mt-2 w-full max-w-xs bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
+          >
+            Update Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="text-gray-400 text-[13px] font-medium"
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, Trash2, User } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { uploadImage, deleteAgentAvatar } from "../lib/api";
+import { uploadImage, deleteAgentAvatar, deleteImageByUrl } from "../lib/api";
 
 const FALLBACK_AVATAR =
   "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
@@ -152,6 +152,18 @@ export default function EditProfilePage() {
 
       if (avatarFile) {
         setUploadingAvatar(true);
+        // Delete the old avatar from Cloudinary before uploading the new one
+        if (
+          currentAgent.avatar &&
+          currentAgent.avatar !== FALLBACK_AVATAR &&
+          currentAgent.avatar.includes("res.cloudinary.com")
+        ) {
+          try {
+            await deleteImageByUrl(currentAgent.avatar);
+          } catch {
+            // Non-fatal — old image cleanup failure shouldn't block the upload
+          }
+        }
         const { image_url } = await uploadImage(avatarFile, "staybolt/avatars");
         avatarUrl = image_url;
         setUploadingAvatar(false);
