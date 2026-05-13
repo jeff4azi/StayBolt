@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { supabase } from "../lib/supabase";
+import { PAYMENT_TYPES, formatCurrency } from "../lib/pricing";
 import StarRating from "../components/StarRating";
+import PricingDisplay from "../components/PricingDisplay";
 
 const FALLBACK_IMG =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -199,6 +201,15 @@ export default function PropertyPage() {
   const agentAvatar = listing.agentAvatarUrl || FALLBACK_IMG;
   const agentPhone = listing.agentPhone?.replace(/\D/g, "") || "";
   const saved = isSaved(listing.id);
+  const pricingMessageLines = [
+    listing.paymentType === PAYMENT_TYPES.FIRST_AND_YEARLY &&
+    listing.firstPaymentAmount !== null
+      ? `First payment: ${formatCurrency(listing.firstPaymentAmount)}`
+      : null,
+    listing.yearlyRentAmount !== null
+      ? `Yearly rent: ${formatCurrency(listing.yearlyRentAmount)}/year`
+      : null,
+  ].filter(Boolean);
 
   const handleBack = () => {
     if (window.history.length > 1) navigate(-1);
@@ -240,7 +251,7 @@ export default function PropertyPage() {
   const waLink =
     agentPhone.length > 0
       ? `https://wa.me/${agentPhone}?text=${encodeURIComponent(
-          `Hello ${agentName},\n\nI came across the following property listing and I'm interested in learning more:\n\n🏠 *${listing.title}*\n📍 ${listing.location}\n💰 ${listing.price}\n\n🔗 ${window.location.origin}/property/${listing.id}\n\nKindly get back to me at your earliest convenience. Thank you.`,
+          `Hello ${agentName},\n\nI came across the following property listing and I'm interested in learning more:\n\nProperty: ${listing.title}\nLocation: ${listing.location}\n${pricingMessageLines.join("\n")}\n\n${window.location.origin}/property/${listing.id}\n\nKindly get back to me at your earliest convenience. Thank you.`,
         )}`
       : null;
 
@@ -353,9 +364,9 @@ export default function PropertyPage() {
             <MapPin size={13} />
             <span>{listing.location}</span>
           </div>
-          <p className="text-green-600 font-bold text-xl mt-2">
-            ₦{listing.price}
-          </p>
+          <div className="mt-2">
+            <PricingDisplay listing={listing} />
+          </div>
 
           <div className="flex gap-4 mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex flex-col items-center flex-1">

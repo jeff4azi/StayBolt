@@ -1,4 +1,5 @@
 import { optimizeCloudinaryUrl } from "./imageUtils";
+import { PAYMENT_TYPES, toAmount } from "./pricing";
 
 const FALLBACK_IMG =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -32,7 +33,9 @@ export function mapListingFromView(row) {
     id: row.id,
     agentId: row.agent_id,
     title: row.title,
-    price: row.price_text,
+    paymentType: row.payment_type ?? PAYMENT_TYPES.YEARLY,
+    firstPaymentAmount: toAmount(row.first_payment_amount),
+    yearlyRentAmount: toAmount(row.yearly_rent_amount),
     location: row.location,
     description: row.description ?? "",
     image: primary,

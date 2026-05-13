@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { uploadImage } from "../lib/api";
+import { PAYMENT_TYPES, PAYMENT_TYPE_LABELS, toAmount } from "../lib/pricing";
 
 const ELECTRICITY_OPTIONS = [
   { value: "steady", label: "Steady" },
@@ -23,7 +24,9 @@ export default function AddPropertyPage() {
 
   const [form, setForm] = useState({
     title: "",
-    price: "",
+    paymentType: PAYMENT_TYPES.YEARLY,
+    firstPaymentAmount: "",
+    yearlyRentAmount: "",
     location: "",
     description: "",
     minutesToCampus: "",
@@ -132,7 +135,18 @@ export default function AddPropertyPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (!form.title || !form.price || !form.location) return;
+    const yearlyRentAmount = toAmount(form.yearlyRentAmount);
+    const firstPaymentAmount = toAmount(form.firstPaymentAmount);
+    const needsFirstPayment =
+      form.paymentType === PAYMENT_TYPES.FIRST_AND_YEARLY;
+
+    if (
+      !form.title ||
+      !form.location ||
+      yearlyRentAmount === null ||
+      (needsFirstPayment && firstPaymentAmount === null)
+    )
+      return;
 
     setUploading(true);
     let coverUrl = null;
@@ -158,7 +172,9 @@ export default function AddPropertyPage() {
 
     const { error: err } = await addListing({
       title: form.title,
-      price: form.price,
+      paymentType: form.paymentType,
+      firstPaymentAmount: needsFirstPayment ? firstPaymentAmount : null,
+      yearlyRentAmount,
       location: form.location,
       description: form.description,
       image: coverUrl,
@@ -258,14 +274,13 @@ export default function AddPropertyPage() {
           />
         </div>
 
-        {/* Title / Price / Location */}
+        {/* Title / Location */}
         {[
           {
             name: "title",
             label: "Property Title",
             placeholder: "e.g. Self Contain in Ijagun",
           },
-          { name: "price", label: "Price", placeholder: "e.g. 150,000/yr" },
           {
             name: "location",
             label: "Location",
@@ -289,6 +304,59 @@ export default function AddPropertyPage() {
             />
           </div>
         ))}
+
+        {/* Pricing */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            Payment Type
+          </label>
+          <select
+            name="paymentType"
+            value={form.paymentType}
+            onChange={handleChange}
+            className="w-full mt-1 text-[14px] text-gray-800 outline-none bg-transparent"
+          >
+            {Object.entries(PAYMENT_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {form.paymentType === PAYMENT_TYPES.FIRST_AND_YEARLY && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              First Payment Amount
+            </label>
+            <input
+              name="firstPaymentAmount"
+              type="number"
+              min="0"
+              value={form.firstPaymentAmount}
+              onChange={handleChange}
+              placeholder="e.g. 200000"
+              required
+              className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent"
+            />
+          </div>
+        )}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            Yearly Rent Amount
+          </label>
+          <input
+            name="yearlyRentAmount"
+            type="number"
+            min="0"
+            value={form.yearlyRentAmount}
+            onChange={handleChange}
+            placeholder="e.g. 150000"
+            required
+            className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent"
+          />
+        </div>
 
         {/* Minutes to campus */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">

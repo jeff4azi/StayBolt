@@ -239,7 +239,9 @@ export function AppProvider({ children }) {
         .insert({
           agent_id: currentAgent.id,
           title: payload.title,
-          price_text: payload.price,
+          payment_type: payload.paymentType,
+          first_payment_amount: payload.firstPaymentAmount,
+          yearly_rent_amount: payload.yearlyRentAmount,
           location: payload.location,
           description: payload.description ?? "",
           cover_image_url: coverUrl,
@@ -276,7 +278,9 @@ export function AppProvider({ children }) {
         .from("listings")
         .update({
           title: updates.title,
-          price_text: updates.price,
+          payment_type: updates.paymentType,
+          first_payment_amount: updates.firstPaymentAmount,
+          yearly_rent_amount: updates.yearlyRentAmount,
           location: updates.location,
           description: updates.description,
           minutes_to_campus: updates.minutesToCampus,

@@ -1,6 +1,7 @@
 import { Bookmark, Share2, MapPin, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import PricingDisplay from "./PricingDisplay";
 
 const FALLBACK_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -79,9 +80,7 @@ export default function ListingCard({ listing }) {
           <span>{listing.location}</span>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <span className="text-green-600 font-bold text-[15px]">
-            {listing.price}
-          </span>
+          <PricingDisplay listing={listing} compact />
           <div className="flex items-center gap-2">
             {listing.rating > 0 && (
               <div className="flex items-center gap-1">

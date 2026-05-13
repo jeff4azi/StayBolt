@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { deleteListing } from "../lib/api";
+import PricingDisplay from "../components/PricingDisplay";
 
 const FALLBACK_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
@@ -190,9 +191,9 @@ export default function DashboardPage() {
                     <p className="font-semibold text-gray-800 text-[13px] truncate">
                       {l.title}
                     </p>
-                    <p className="text-green-600 text-[13px] font-bold mt-0.5">
-                      {l.price}
-                    </p>
+                    <div className="mt-0.5">
+                      <PricingDisplay listing={l} compact />
+                    </div>
                     <div className="flex items-center gap-3 mt-1">
                       <div className="flex items-center gap-1 text-gray-400 text-[11px]">
                         <Eye size={11} />
