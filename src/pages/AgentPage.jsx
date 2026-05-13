@@ -241,7 +241,7 @@ export default function AgentPage() {
             <div className="flex gap-3 mt-4">
               {[
                 { label: "Listings", value: agentListings.length },
-                { label: "Rating", value: agent.rating },
+                { label: "Rating", value: Number(agent.rating).toFixed(1) },
                 { label: "Reviews", value: reviews.length },
               ].map(({ label, value }) => (
                 <div

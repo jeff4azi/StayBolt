@@ -205,7 +205,7 @@ export default function DashboardPage() {
                             className="fill-yellow-400 text-yellow-400"
                           />
                           <span className="font-medium text-gray-500">
-                            {l.rating}
+                            {Number(l.rating).toFixed(1)}
                           </span>
                         </div>
                       )}

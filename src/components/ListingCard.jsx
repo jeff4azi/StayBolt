@@ -87,7 +87,7 @@ export default function ListingCard({ listing }) {
               <div className="flex items-center gap-1">
                 <Star size={12} className="fill-yellow-400 text-yellow-400" />
                 <span className="text-gray-500 text-[12px] font-medium">
-                  {listing.rating}
+                  {Number(listing.rating).toFixed(1)}
                 </span>
                 <span className="text-gray-300 text-[12px]">
                   ({listing.ratingsCount})

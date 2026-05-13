@@ -245,7 +245,7 @@ export default function PropertyPage() {
           <img
             src={listing.gallery[activeImg]}
             alt={listing.title}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 cursor-pointer ${
               imgLoaded ? "opacity-100" : "opacity-0"
             }`}
             onLoad={() => setImgLoaded(true)}
@@ -253,6 +253,7 @@ export default function PropertyPage() {
               e.target.src = FALLBACK_IMG;
               setImgLoaded(true);
             }}
+            onClick={() => setLightboxOpen(true)}
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />

@@ -21,7 +21,7 @@ export default function StarRating({ rating, max = 5, size = 16 }) {
         );
       })}
       <span className="ml-1 text-[13px] text-gray-500 font-medium">
-        {rating}
+        {Number(rating).toFixed(1)}
       </span>
     </div>
   );
