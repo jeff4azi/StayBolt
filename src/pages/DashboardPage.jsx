@@ -16,7 +16,7 @@ import { useApp } from "../context/AppContext";
 import { deleteListing } from "../lib/api";
 
 const FALLBACK_AVATAR =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 export default function DashboardPage() {
   const navigate = useNavigate();

@@ -5,9 +5,9 @@ import {
   Bookmark,
   Share2,
   MapPin,
-  Bed,
-  Bath,
-  Maximize2,
+  Clock,
+  Zap,
+  Droplets,
   Star,
   MessageCircle,
   X,
@@ -20,7 +20,7 @@ import { supabase } from "../lib/supabase";
 import StarRating from "../components/StarRating";
 
 const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 function Lightbox({ images, startIndex, onClose }) {
   const [current, setCurrent] = useState(startIndex);
@@ -104,8 +104,14 @@ function Lightbox({ images, startIndex, onClose }) {
 export default function PropertyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { listings, listingsLoading, isSaved, toggleSave, user, refreshListings } =
-    useApp();
+  const {
+    listings,
+    listingsLoading,
+    isSaved,
+    toggleSave,
+    user,
+    refreshListings,
+  } = useApp();
   const [activeImg, setActiveImg] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -126,9 +132,11 @@ export default function PropertyPage() {
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, "1");
     viewRecorded.current = true;
-    supabase.rpc("increment_listing_views", { target_listing_id: id }).catch(() => {
-      /* RPC may be missing grants in dev */
-    });
+    supabase
+      .rpc("increment_listing_views", { target_listing_id: id })
+      .catch(() => {
+        /* RPC may be missing grants in dev */
+      });
   }, [id]);
 
   useEffect(() => {
@@ -328,32 +336,32 @@ export default function PropertyPage() {
             <span>{listing.location}</span>
           </div>
           <p className="text-green-600 font-bold text-xl mt-2">
-            {listing.price}
+            ₦{listing.price}
           </p>
 
           <div className="flex gap-4 mt-4 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex flex-col items-center flex-1">
-              <Bed size={18} className="text-green-600" />
+              <Clock size={18} className="text-green-600" />
               <span className="text-[13px] font-semibold text-gray-800 mt-1">
-                {listing.beds}
+                {listing.minutesToCampus} min
               </span>
-              <span className="text-[11px] text-gray-400">Beds</span>
+              <span className="text-[11px] text-gray-400">To Campus</span>
             </div>
             <div className="w-px bg-gray-100" />
             <div className="flex flex-col items-center flex-1">
-              <Bath size={18} className="text-green-600" />
-              <span className="text-[13px] font-semibold text-gray-800 mt-1">
-                {listing.baths}
+              <Zap size={18} className="text-green-600" />
+              <span className="text-[13px] font-semibold text-gray-800 mt-1 capitalize">
+                {listing.electricityStatus}
               </span>
-              <span className="text-[11px] text-gray-400">Baths</span>
+              <span className="text-[11px] text-gray-400">Electricity</span>
             </div>
             <div className="w-px bg-gray-100" />
             <div className="flex flex-col items-center flex-1">
-              <Maximize2 size={18} className="text-green-600" />
-              <span className="text-[13px] font-semibold text-gray-800 mt-1">
-                {listing.sqft}
+              <Droplets size={18} className="text-green-600" />
+              <span className="text-[13px] font-semibold text-gray-800 mt-1 capitalize">
+                {listing.waterSupply}
               </span>
-              <span className="text-[11px] text-gray-400">Sq ft</span>
+              <span className="text-[11px] text-gray-400">Water</span>
             </div>
           </div>
 

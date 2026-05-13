@@ -4,6 +4,8 @@
  * Cloudinary credentials never touch the browser.
  */
 
+import { compressImage } from "./imageUtils";
+
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
 
 async function request(method, path, body) {
@@ -27,17 +29,18 @@ async function request(method, path, body) {
 // ---------------------------------------------------------------------------
 
 /**
- * Upload a single image file (File | Blob) to Cloudinary via the backend.
+ * Compress then upload a single image file (File | Blob) to Cloudinary via the backend.
  * @param {File|Blob} file
  * @param {string} [folder]  Cloudinary folder, defaults to "staybolt"
  * @returns {Promise<{ image_url: string, image_public_id: string }>}
  */
 export async function uploadImage(file, folder = "staybolt") {
-  const base64 = await fileToBase64(file);
+  const compressed = await compressImage(file);
+  const base64 = await fileToBase64(compressed);
   return request("POST", "/upload-image", {
     file: base64,
     mimeType: file.type || "image/jpeg",
-    fileName: file.name,
+    fileName: file instanceof File ? file.name : undefined,
     folder,
   });
 }

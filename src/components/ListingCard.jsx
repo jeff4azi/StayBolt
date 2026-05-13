@@ -1,9 +1,9 @@
-import { Bookmark, Share2, MapPin } from "lucide-react";
+import { Bookmark, Share2, MapPin, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
 const FALLBACK_AVATAR =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 export default function ListingCard({ listing }) {
   const navigate = useNavigate();
@@ -83,6 +83,17 @@ export default function ListingCard({ listing }) {
             {listing.price}
           </span>
           <div className="flex items-center gap-2">
+            {listing.rating > 0 && (
+              <div className="flex items-center gap-1">
+                <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                <span className="text-gray-500 text-[12px] font-medium">
+                  {listing.rating}
+                </span>
+                <span className="text-gray-300 text-[12px]">
+                  ({listing.ratingsCount})
+                </span>
+              </div>
+            )}
             <img
               src={agentAvatar}
               alt={agentName}

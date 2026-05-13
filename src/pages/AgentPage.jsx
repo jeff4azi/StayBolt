@@ -9,17 +9,29 @@ import StarRating from "../components/StarRating";
 
 const COLLAPSE_THRESHOLD = 60;
 const FALLBACK_AVATAR =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+
+function InitialAvatar({ name }) {
+  const initial = name?.trim().charAt(0).toUpperCase() || "?";
+  // Generate a consistent hue from the name string
+  const hue = name
+    ? [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0) % 360
+    : 200;
+  return (
+    <div
+      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-white text-[14px] font-bold"
+      style={{ backgroundColor: `hsl(${hue}, 55%, 48%)` }}
+    >
+      {initial}
+    </div>
+  );
+}
 
 function ReviewCard({ review }) {
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-center gap-3 mb-2">
-        <img
-          src={review.avatar}
-          alt={review.author}
-          className="w-9 h-9 rounded-full object-cover border border-gray-100"
-        />
+        <InitialAvatar name={review.author} />
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-800 text-[13px]">
             {review.author}

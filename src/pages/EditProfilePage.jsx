@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Camera, Trash2, User } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { uploadImage, deleteAgentAvatar, deleteImageByUrl } from "../lib/api";
+import { compressAvatar } from "../lib/imageUtils";
 
 const FALLBACK_AVATAR =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 /**
  * Normalise a phone number to E.164 format with a +234 country code.
@@ -164,7 +165,8 @@ export default function EditProfilePage() {
             // Non-fatal — old image cleanup failure shouldn't block the upload
           }
         }
-        const { image_url } = await uploadImage(avatarFile, "staybolt/avatars");
+        const compressed = await compressAvatar(avatarFile);
+        const { image_url } = await uploadImage(compressed, "staybolt/avatars");
         avatarUrl = image_url;
         setUploadingAvatar(false);
       }

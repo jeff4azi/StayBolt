@@ -3,6 +3,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ImagePlus } from "lucide-react";
 import { useApp } from "../context/AppContext";
 
+const ELECTRICITY_OPTIONS = [
+  { value: "steady", label: "Steady" },
+  { value: "moderate", label: "Moderate" },
+  { value: "poor", label: "Poor" },
+];
+
+const WATER_OPTIONS = [
+  { value: "borehole", label: "Borehole" },
+  { value: "well water", label: "Well Water" },
+  { value: "unstable", label: "Unstable" },
+];
+
 export default function EditPropertyPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -22,6 +34,9 @@ export default function EditPropertyPage() {
     price: "",
     location: "",
     description: "",
+    minutesToCampus: "",
+    electricityStatus: "moderate",
+    waterSupply: "borehole",
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
@@ -38,17 +53,18 @@ export default function EditPropertyPage() {
       price: listing.price,
       location: listing.location,
       description: listing.description || "",
+      minutesToCampus: listing.minutesToCampus ?? "",
+      electricityStatus: listing.electricityStatus ?? "moderate",
+      waterSupply: listing.waterSupply ?? "borehole",
     });
   }, [listing]);
 
-  if (sessionReady && !isLoggedIn) {
-    return null;
-  }
+  if (sessionReady && !isLoggedIn) return null;
 
   if (listingsLoading && !listing) {
     return (
       <div className="flex items-center justify-center min-h-screen text-gray-400 pb-24">
-        Loading…
+        Loading...
       </div>
     );
   }
@@ -89,6 +105,9 @@ export default function EditPropertyPage() {
       price: form.price,
       location: form.location,
       description: form.description,
+      minutesToCampus: Number(form.minutesToCampus) || 0,
+      electricityStatus: form.electricityStatus,
+      waterSupply: form.waterSupply,
     });
     if (err) {
       setError(err.message || "Could not save");
@@ -122,32 +141,31 @@ export default function EditPropertyPage() {
         onSubmit={handleSubmit}
         className="max-w-md mx-auto px-4 mt-5 flex flex-col gap-4"
       >
+        {/* Cover image preview */}
         <div className="relative rounded-2xl overflow-hidden h-40">
           <img
             src={listing.image}
             alt={listing.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-1 cursor-pointer">
+          <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center gap-1">
             <ImagePlus size={24} className="text-white" />
             <p className="text-white text-[12px] font-medium">Cover image</p>
-            <p className="text-white/60 text-[11px]">
-              Image upload can be added with Supabase Storage
-            </p>
           </div>
         </div>
 
+        {/* Title / Price / Location */}
         {[
           {
             name: "title",
             label: "Property Title",
-            placeholder: "e.g. 2 Bedroom Apartment in Lekki",
+            placeholder: "e.g. Self Contain in Ijagun",
           },
-          { name: "price", label: "Price", placeholder: "e.g. ₦350,000/yr" },
+          { name: "price", label: "Price", placeholder: "e.g. ₦150,000/yr" },
           {
             name: "location",
             label: "Location",
-            placeholder: "e.g. Lekki Phase 1, Lagos",
+            placeholder: "e.g. Imaweje, TASUED",
           },
         ].map(({ name, label, placeholder }) => (
           <div
@@ -168,6 +186,62 @@ export default function EditPropertyPage() {
           </div>
         ))}
 
+        {/* Minutes to campus */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            Minutes to TASUED Campus
+          </label>
+          <input
+            name="minutesToCampus"
+            type="number"
+            min="0"
+            value={form.minutesToCampus}
+            onChange={handleChange}
+            placeholder="e.g. 10"
+            className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Electricity & Water */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              Electricity
+            </label>
+            <select
+              name="electricityStatus"
+              value={form.electricityStatus}
+              onChange={handleChange}
+              className="w-full mt-1 text-[14px] text-gray-800 outline-none bg-transparent"
+            >
+              {ELECTRICITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              Water Supply
+            </label>
+            <select
+              name="waterSupply"
+              value={form.waterSupply}
+              onChange={handleChange}
+              className="w-full mt-1 text-[14px] text-gray-800 outline-none bg-transparent"
+            >
+              {WATER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Description */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
           <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
             Description
@@ -182,15 +256,13 @@ export default function EditPropertyPage() {
           />
         </div>
 
-        {error && (
-          <p className="text-red-600 text-[13px] px-1">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-[13px] px-1">{error}</p>}
 
         <button
           type="submit"
           className="w-full bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform"
         >
-          {saved ? "✓ Changes Saved!" : "Save Changes"}
+          {saved ? "Changes Saved!" : "Save Changes"}
         </button>
       </form>
     </div>

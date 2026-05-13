@@ -1,5 +1,7 @@
+import { optimizeCloudinaryUrl } from "./imageUtils";
+
 const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=60";
+  "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
 function normalizeGallery(raw) {
   if (!raw) return [];
@@ -18,11 +20,14 @@ function normalizeGallery(raw) {
 /** Map a row from `listings_with_agents` to the shape the UI expects */
 export function mapListingFromView(row) {
   const gallery = normalizeGallery(row.gallery);
-  const primary =
-    row.cover_image_url ||
-    gallery[0] ||
-    FALLBACK_IMG;
-  const images = gallery.length > 0 ? gallery : [primary];
+  const rawPrimary = row.cover_image_url || gallery[0] || FALLBACK_IMG;
+  const rawImages = gallery.length > 0 ? gallery : [rawPrimary];
+
+  // Apply Cloudinary delivery optimisations (q_auto, f_auto, w_1200)
+  // Non-Cloudinary URLs (Unsplash fallback, etc.) pass through unchanged
+  const primary = optimizeCloudinaryUrl(rawPrimary, 1200);
+  const images = rawImages.map((url) => optimizeCloudinaryUrl(url, 1200));
+
   return {
     id: row.id,
     agentId: row.agent_id,
@@ -32,15 +37,16 @@ export function mapListingFromView(row) {
     description: row.description ?? "",
     image: primary,
     gallery: images,
-    beds: row.beds ?? 0,
-    baths: row.baths ?? 0,
-    sqft: row.sqft ?? 0,
+    minutesToCampus: row.minutes_to_campus ?? 0,
+    electricityStatus: row.electricity_status ?? "moderate",
+    waterSupply: row.water_supply ?? "borehole",
     status: row.status,
     views: row.views ?? 0,
     rating: Number(row.rating) || 0,
     ratingsCount: row.ratings_count ?? 0,
     agentName: row.agent_name,
-    agentAvatarUrl: row.agent_avatar_url,
+    // Agent avatars are small — 200px is plenty for thumbnails
+    agentAvatarUrl: optimizeCloudinaryUrl(row.agent_avatar_url, 200),
     agentPhone: row.agent_phone,
   };
 }
@@ -50,7 +56,8 @@ export function mapAgentRow(row) {
   return {
     id: row.id,
     name: row.name,
-    avatar: row.avatar_url || FALLBACK_IMG,
+    // Agent profile avatar — 400px covers the largest display size used
+    avatar: optimizeCloudinaryUrl(row.avatar_url, 400) || FALLBACK_IMG,
     rating: Number(row.rating) || 0,
     reviews: row.reviews_count ?? 0,
     bio: row.bio ?? "",
@@ -67,7 +74,7 @@ export function mapAgentReviewRow(row) {
   return {
     id: row.id,
     author: row.author,
-    avatar: row.avatar_url || FALLBACK_IMG,
+    avatar: optimizeCloudinaryUrl(row.avatar_url, 100) || FALLBACK_IMG,
     rating: row.rating,
     comment: row.comment,
     date,

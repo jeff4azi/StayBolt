@@ -4,6 +4,18 @@ import { ArrowLeft, ImagePlus, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { uploadImage } from "../lib/api";
 
+const ELECTRICITY_OPTIONS = [
+  { value: "steady", label: "Steady" },
+  { value: "moderate", label: "Moderate" },
+  { value: "poor", label: "Poor" },
+];
+
+const WATER_OPTIONS = [
+  { value: "borehole", label: "Borehole" },
+  { value: "well water", label: "Well Water" },
+  { value: "unstable", label: "Unstable" },
+];
+
 export default function AddPropertyPage() {
   const navigate = useNavigate();
   const { currentAgent, isLoggedIn, sessionReady, addListing } = useApp();
@@ -14,12 +26,11 @@ export default function AddPropertyPage() {
     price: "",
     location: "",
     description: "",
-    beds: "",
-    baths: "",
-    sqft: "",
+    minutesToCampus: "",
+    electricityStatus: "moderate",
+    waterSupply: "borehole",
   });
 
-  // Each entry: { file: File, preview: string }
   const [imageFiles, setImageFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -30,7 +41,6 @@ export default function AddPropertyPage() {
     navigate("/profile", { replace: true });
   }, [sessionReady, isLoggedIn, navigate]);
 
-  // Clean up object URLs on unmount
   useEffect(() => {
     return () => {
       imageFiles.forEach((f) => URL.revokeObjectURL(f.preview));
@@ -42,12 +52,11 @@ export default function AddPropertyPage() {
   if (sessionReady && isLoggedIn && !currentAgent) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400 pb-24">
-        Loading…
+        Loading...
       </div>
     );
   }
 
-  // Block agents who haven't added a phone number yet
   if (currentAgent && !currentAgent.phone?.trim()) {
     return (
       <div className="min-h-screen bg-gray-50 pb-24">
@@ -63,7 +72,6 @@ export default function AddPropertyPage() {
             <h1 className="text-lg font-bold text-gray-900">Add Property</h1>
           </div>
         </div>
-
         <div className="max-w-md mx-auto px-4 mt-16 flex flex-col items-center text-center gap-4">
           <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center">
             <span className="text-3xl">📞</span>
@@ -106,7 +114,6 @@ export default function AddPropertyPage() {
       preview: URL.createObjectURL(file),
     }));
     setImageFiles((prev) => [...prev, ...newEntries]);
-    // Reset input so the same file can be re-selected if removed
     e.target.value = "";
   };
 
@@ -128,7 +135,6 @@ export default function AddPropertyPage() {
 
     try {
       if (imageFiles.length > 0) {
-        // Upload all images; first one becomes the cover
         const results = await Promise.all(
           imageFiles.map((entry) =>
             uploadImage(entry.file, "staybolt/listings"),
@@ -150,11 +156,11 @@ export default function AddPropertyPage() {
       price: form.price,
       location: form.location,
       description: form.description,
-      image: coverUrl, // null → addListing uses its own default
-      galleryUrls, // passed through so addListing can insert them
-      beds: Number(form.beds) || 2,
-      baths: Number(form.baths) || 1,
-      sqft: Number(form.sqft) || 800,
+      image: coverUrl,
+      galleryUrls,
+      minutesToCampus: Number(form.minutesToCampus) || 0,
+      electricityStatus: form.electricityStatus,
+      waterSupply: form.waterSupply,
     });
 
     if (err) {
@@ -170,7 +176,6 @@ export default function AddPropertyPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
       <div className="bg-white px-4 pt-5 pb-4 shadow-sm sticky top-0 z-40">
         <div className="max-w-md mx-auto flex items-center gap-3">
           <button
@@ -216,8 +221,6 @@ export default function AddPropertyPage() {
                   </button>
                 </div>
               ))}
-
-              {/* Add more */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -240,7 +243,6 @@ export default function AddPropertyPage() {
               </p>
             </button>
           )}
-
           <input
             ref={fileInputRef}
             type="file"
@@ -251,18 +253,18 @@ export default function AddPropertyPage() {
           />
         </div>
 
-        {/* Text fields */}
+        {/* Title / Price / Location */}
         {[
           {
             name: "title",
             label: "Property Title",
-            placeholder: "e.g. 2 Bedroom Apartment in Lekki",
+            placeholder: "e.g. Self Contain in Ijagun",
           },
-          { name: "price", label: "Price", placeholder: "e.g. ₦350,000/yr" },
+          { name: "price", label: "Price", placeholder: "e.g. 150,000/yr" },
           {
             name: "location",
             label: "Location",
-            placeholder: "e.g. Lekki Phase 1, Lagos",
+            placeholder: "e.g. Imaweje, TASUED",
           },
         ].map(({ name, label, placeholder }) => (
           <div
@@ -283,31 +285,59 @@ export default function AddPropertyPage() {
           </div>
         ))}
 
-        {/* Beds / Baths / Sqft */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { name: "beds", label: "Beds", placeholder: "2" },
-            { name: "baths", label: "Baths", placeholder: "1" },
-            { name: "sqft", label: "Sq ft", placeholder: "800" },
-          ].map(({ name, label, placeholder }) => (
-            <div
-              key={name}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3"
+        {/* Minutes to campus */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            Minutes to TASUED Campus
+          </label>
+          <input
+            name="minutesToCampus"
+            type="number"
+            min="0"
+            value={form.minutesToCampus}
+            onChange={handleChange}
+            placeholder="e.g. 10"
+            className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent"
+          />
+        </div>
+
+        {/* Electricity & Water — side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              Electricity
+            </label>
+            <select
+              name="electricityStatus"
+              value={form.electricityStatus}
+              onChange={handleChange}
+              className="w-full mt-1 text-[14px] text-gray-800 outline-none bg-transparent"
             >
-              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                {label}
-              </label>
-              <input
-                name={name}
-                type="number"
-                min="0"
-                value={form[name]}
-                onChange={handleChange}
-                placeholder={placeholder}
-                className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent"
-              />
-            </div>
-          ))}
+              {ELECTRICITY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3">
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              Water Supply
+            </label>
+            <select
+              name="waterSupply"
+              value={form.waterSupply}
+              onChange={handleChange}
+              className="w-full mt-1 text-[14px] text-gray-800 outline-none bg-transparent"
+            >
+              {WATER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Description */}
@@ -333,9 +363,9 @@ export default function AddPropertyPage() {
           className="w-full bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-60"
         >
           {submitted
-            ? "✓ Property Added!"
+            ? "Property Added!"
             : uploading
-              ? "Uploading images…"
+              ? "Uploading images..."
               : "Submit Property"}
         </button>
       </form>

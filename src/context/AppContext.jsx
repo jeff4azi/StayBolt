@@ -243,9 +243,9 @@ export function AppProvider({ children }) {
           location: payload.location,
           description: payload.description ?? "",
           cover_image_url: coverUrl,
-          beds: payload.beds ?? 2,
-          baths: payload.baths ?? 1,
-          sqft: payload.sqft ?? 800,
+          minutes_to_campus: payload.minutesToCampus ?? 0,
+          electricity_status: payload.electricityStatus ?? "moderate",
+          water_supply: payload.waterSupply ?? "borehole",
           status: "available",
         })
         .select("id")
@@ -279,6 +279,9 @@ export function AppProvider({ children }) {
           price_text: updates.price,
           location: updates.location,
           description: updates.description,
+          minutes_to_campus: updates.minutesToCampus,
+          electricity_status: updates.electricityStatus,
+          water_supply: updates.waterSupply,
         })
         .eq("id", id);
       if (error) return { error };
