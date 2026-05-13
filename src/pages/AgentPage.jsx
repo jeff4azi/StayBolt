@@ -138,6 +138,11 @@ export default function AgentPage() {
 
   const agentListings = listings.filter((l) => l.agentId === id);
 
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/", { replace: true });
+  };
+
   const handleShare = () => {
     navigator.clipboard.writeText(`${window.location.origin}/agent/${id}`);
     alert("Profile link copied!");
@@ -191,7 +196,7 @@ export default function AgentPage() {
           <div className="flex items-center justify-between">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => handleBack()}
               className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform shrink-0"
             >
               <ArrowLeft size={18} className="text-gray-700" />

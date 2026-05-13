@@ -199,6 +199,11 @@ export default function PropertyPage() {
   const agentPhone = listing.agentPhone?.replace(/\D/g, "") || "";
   const saved = isSaved(listing.id);
 
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/", { replace: true });
+  };
+
   const handleShare = () => {
     navigator.clipboard.writeText(
       `${window.location.origin}/property/${listing.id}`,
@@ -272,7 +277,7 @@ export default function PropertyPage() {
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-5 pointer-events-none">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => handleBack()}
               className="pointer-events-auto w-9 h-9 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow active:scale-90 transition-transform"
             >
               <ArrowLeft size={18} className="text-gray-700" />

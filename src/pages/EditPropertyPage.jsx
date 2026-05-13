@@ -92,6 +92,11 @@ export default function EditPropertyPage() {
     );
   }
 
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/", { replace: true });
+  };
+
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -123,7 +128,7 @@ export default function EditPropertyPage() {
         <div className="max-w-md mx-auto flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => handleBack()}
             className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
           >
             <ArrowLeft size={18} className="text-gray-700" />

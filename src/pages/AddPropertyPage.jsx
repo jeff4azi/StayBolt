@@ -49,6 +49,11 @@ export default function AddPropertyPage() {
 
   if (sessionReady && !isLoggedIn) return null;
 
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/", { replace: true });
+  };
+
   if (sessionReady && isLoggedIn && !currentAgent) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400 pb-24">
@@ -64,7 +69,7 @@ export default function AddPropertyPage() {
           <div className="max-w-md mx-auto flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => handleBack()}
               className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
             >
               <ArrowLeft size={18} className="text-gray-700" />
@@ -92,7 +97,7 @@ export default function AddPropertyPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => handleBack()}
             className="text-gray-400 text-[13px] font-medium"
           >
             Go back
@@ -180,7 +185,7 @@ export default function AddPropertyPage() {
         <div className="max-w-md mx-auto flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => handleBack()}
             className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"
           >
             <ArrowLeft size={18} className="text-gray-700" />
