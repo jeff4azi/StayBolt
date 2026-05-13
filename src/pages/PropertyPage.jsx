@@ -155,7 +155,6 @@ export default function PropertyPage() {
 
   useEffect(() => {
     setActiveImg(0);
-    setImgLoaded(false);
     setUserRating(0);
   }, [listing?.id]);
 
