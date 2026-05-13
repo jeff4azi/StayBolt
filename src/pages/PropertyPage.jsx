@@ -30,13 +30,14 @@ function Lightbox({ images, startIndex, onClose }) {
 
   useEffect(() => {
     const handler = (e) => {
-      if (e.key === "ArrowLeft") prev();
-      if (e.key === "ArrowRight") next();
+      if (e.key === "ArrowLeft")
+        setCurrent((c) => (c - 1 + images.length) % images.length);
+      if (e.key === "ArrowRight") setCurrent((c) => (c + 1) % images.length);
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [images.length, onClose]);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -44,7 +45,7 @@ function Lightbox({ images, startIndex, onClose }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
       <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
         <span className="text-white/60 text-[13px] font-medium">
           {current + 1} / {images.length}
