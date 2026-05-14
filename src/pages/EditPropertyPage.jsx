@@ -34,7 +34,7 @@ export default function EditPropertyPage() {
 
   const [form, setForm] = useState({
     title: "",
-    paymentType: PAYMENT_TYPES.YEARLY,
+    paymentType: PAYMENT_TYPES.FIRST_AND_YEARLY,
     firstPaymentAmount: "",
     yearlyRentAmount: "",
     location: "",
@@ -57,7 +57,7 @@ export default function EditPropertyPage() {
     if (!listing) return;
     setForm({
       title: listing.title,
-      paymentType: listing.paymentType ?? PAYMENT_TYPES.YEARLY,
+      paymentType: listing.paymentType ?? PAYMENT_TYPES.FIRST_AND_YEARLY,
       firstPaymentAmount: listing.firstPaymentAmount ?? "",
       yearlyRentAmount: listing.yearlyRentAmount ?? "",
       location: listing.location,

@@ -24,7 +24,7 @@ export default function AddPropertyPage() {
 
   const [form, setForm] = useState({
     title: "",
-    paymentType: PAYMENT_TYPES.YEARLY,
+    paymentType: PAYMENT_TYPES.FIRST_AND_YEARLY,
     firstPaymentAmount: "",
     yearlyRentAmount: "",
     location: "",
