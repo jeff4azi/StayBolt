@@ -9,10 +9,21 @@ import { compressImage } from "./imageUtils";
 const BASE_URL = import.meta.env.VITE_BASE_URL ?? "";
 
 async function request(method, path, body) {
+  const headers = { "Content-Type": "application/json" };
+  const token = body?.authToken;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const jsonBody =
+    body && Object.hasOwn(body, "authToken")
+      ? Object.fromEntries(
+          Object.entries(body).filter(([key]) => key !== "authToken"),
+        )
+      : body;
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: { "Content-Type": "application/json" },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers,
+    body: jsonBody !== undefined ? JSON.stringify(jsonBody) : undefined,
   });
 
   const json = await res.json().catch(() => ({}));
@@ -82,6 +93,18 @@ export async function deleteListingImage(imageId, imageUrl) {
  */
 export async function deleteCoverImage(listingId) {
   return request("DELETE", "/delete-cover-image", { listingId });
+}
+
+// ---------------------------------------------------------------------------
+// Ratings
+// ---------------------------------------------------------------------------
+
+export async function requestPropertyRatingEligibility(payload) {
+  return request("POST", "/property-ratings/eligibility", payload);
+}
+
+export async function submitPropertyRating(payload) {
+  return request("POST", "/property-ratings", payload);
 }
 
 // ---------------------------------------------------------------------------

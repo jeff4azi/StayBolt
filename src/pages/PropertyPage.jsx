@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -17,12 +17,18 @@ import {
 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { supabase } from "../lib/supabase";
+import {
+  requestPropertyRatingEligibility,
+  submitPropertyRating,
+} from "../lib/api";
+import { getBrowserFingerprint } from "../lib/fingerprint";
 import { PAYMENT_TYPES, formatCurrency } from "../lib/pricing";
 import StarRating from "../components/StarRating";
 import PricingDisplay from "../components/PricingDisplay";
 
 const FALLBACK_IMG =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
+const SCROLL_ELIGIBILITY_THRESHOLD = 0.55;
 
 function Lightbox({ images, startIndex, onClose }) {
   const [current, setCurrent] = useState(startIndex);
@@ -121,9 +127,18 @@ export default function PropertyPage() {
   const [imgLoaded, setImgLoaded] = useState(false);
   const [ratingSaving, setRatingSaving] = useState(false);
   const [agentRatingRow, setAgentRatingRow] = useState(null);
+  const [fingerprint, setFingerprint] = useState("");
+  const [eligibilityToken, setEligibilityToken] = useState("");
+  const [ratingMessage, setRatingMessage] = useState("");
   const viewRecorded = useRef(false);
+  const eligibilityTokenRef = useRef("");
+  const scrollEligibilityRecorded = useRef(false);
 
   const listing = listings.find((l) => l.id === id);
+
+  useEffect(() => {
+    eligibilityTokenRef.current = eligibilityToken;
+  }, [eligibilityToken]);
 
   useEffect(() => {
     viewRecorded.current = false;
@@ -156,7 +171,89 @@ export default function PropertyPage() {
   useEffect(() => {
     setActiveImg(0);
     setUserRating(0);
+    setEligibilityToken("");
+    setRatingMessage("");
+    scrollEligibilityRecorded.current = false;
   }, [listing?.id]);
+
+  useEffect(() => {
+    getBrowserFingerprint()
+      .then(setFingerprint)
+      .catch((error) => {
+        console.error("Could not generate browser fingerprint:", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!listing?.id || !fingerprint) return;
+    const savedRating = localStorage.getItem(
+      `staybolt_property_rating_${listing.id}_${fingerprint}`,
+    );
+    if (savedRating) setUserRating(Number(savedRating));
+
+    const savedToken = sessionStorage.getItem(
+      `staybolt_rating_eligibility_${listing.id}_${fingerprint}`,
+    );
+    if (savedToken) setEligibilityToken(savedToken);
+  }, [listing?.id, fingerprint]);
+
+  const markRatingEligible = useCallback(
+    async (interaction) => {
+      if (!listing?.id || eligibilityTokenRef.current) return;
+
+      try {
+        const browserFingerprint = fingerprint || (await getBrowserFingerprint());
+        setFingerprint(browserFingerprint);
+        const { eligibilityToken: token } =
+          await requestPropertyRatingEligibility({
+            listing_id: listing.id,
+            fingerprint: browserFingerprint,
+            interaction,
+          });
+
+        if (!token) return;
+        eligibilityTokenRef.current = token;
+        setEligibilityToken(token);
+        sessionStorage.setItem(
+          `staybolt_rating_eligibility_${listing.id}_${browserFingerprint}`,
+          token,
+        );
+      } catch (error) {
+        console.error("Could not record rating eligibility:", error);
+      }
+    },
+    [fingerprint, listing?.id],
+  );
+
+  useEffect(() => {
+    if (!listing?.id) return;
+    const timer = window.setTimeout(() => {
+      markRatingEligible("time_on_page");
+    }, 30000);
+
+    return () => window.clearTimeout(timer);
+  }, [listing?.id, markRatingEligible]);
+
+  useEffect(() => {
+    if (!listing?.id) return;
+
+    const onScroll = () => {
+      if (scrollEligibilityRecorded.current) return;
+      const documentHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      if (documentHeight <= 0) return;
+
+      const progress = window.scrollY / documentHeight;
+      if (progress >= SCROLL_ELIGIBILITY_THRESHOLD) {
+        scrollEligibilityRecorded.current = true;
+        markRatingEligible("significant_scroll");
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [listing?.id, markRatingEligible]);
 
   useEffect(() => {
     if (!user?.id || !listing?.id) return;
@@ -222,29 +319,57 @@ export default function PropertyPage() {
     alert("Link copied!");
   };
 
+  const openGallery = () => {
+    setLightboxOpen(true);
+    markRatingEligible("gallery_opened");
+  };
+
   const submitRating = async (stars) => {
-    if (!user?.id) {
-      alert("Sign in to rate properties.");
-      navigate("/profile");
+    setRatingMessage("");
+
+    const browserFingerprint = fingerprint || (await getBrowserFingerprint());
+    setFingerprint(browserFingerprint);
+    const token =
+      eligibilityToken ||
+      sessionStorage.getItem(
+        `staybolt_rating_eligibility_${listing.id}_${browserFingerprint}`,
+      );
+
+    if (!token) {
+      setRatingMessage(
+        "Explore the property a bit more before rating it.",
+      );
       return;
     }
+
     setRatingSaving(true);
-    const { error } = await supabase.from("property_ratings").upsert(
-      {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      await submitPropertyRating({
         listing_id: listing.id,
-        user_id: user.id,
         rating: stars,
-      },
-      { onConflict: "listing_id,user_id" },
-    );
-    setRatingSaving(false);
-    if (error) {
+        fingerprint: browserFingerprint,
+        user_id: user?.id,
+        eligibilityToken: token,
+        authToken: session?.access_token,
+      });
+
+      localStorage.setItem(
+        `staybolt_property_rating_${listing.id}_${browserFingerprint}`,
+        String(stars),
+      );
+      setUserRating(stars);
+      setRatingMessage("Thanks for rating!");
+      refreshListings();
+    } catch (error) {
       console.error(error);
-      alert(error.message || "Could not save rating");
-      return;
+      setRatingMessage(error.message || "Could not save rating");
+    } finally {
+      setRatingSaving(false);
     }
-    setUserRating(stars);
-    refreshListings();
   };
 
   const waLink =
@@ -280,7 +405,7 @@ export default function PropertyPage() {
               e.target.src = FALLBACK_IMG;
               setImgLoaded(true);
             }}
-            onClick={() => setLightboxOpen(true)}
+            onClick={openGallery}
           />
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20 pointer-events-none" />
@@ -328,7 +453,7 @@ export default function PropertyPage() {
             </span>
             <button
               type="button"
-              onClick={() => setLightboxOpen(true)}
+              onClick={openGallery}
               className="pointer-events-auto flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[12px] font-medium px-3 py-1.5 rounded-full active:bg-black/60"
             >
               <ZoomIn size={13} />
@@ -432,7 +557,10 @@ export default function PropertyPage() {
           <button
             type="button"
             disabled={!waLink}
-            onClick={() => waLink && window.open(waLink, "_blank")}
+            onClick={() => {
+              markRatingEligible("contact_clicked");
+              if (waLink) window.open(waLink, "_blank");
+            }}
             className="mt-4 w-full flex items-center justify-center gap-3 bg-green-600 text-white rounded-2xl py-3.5 font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <MessageCircle size={18} />
@@ -463,14 +591,13 @@ export default function PropertyPage() {
                 </button>
               ))}
             </div>
-            {userRating > 0 && (
-              <p className="text-green-600 text-[13px] mt-2 font-medium">
-                Thanks for rating!
-              </p>
-            )}
-            {!user && (
-              <p className="text-gray-400 text-[12px] mt-2">
-                Sign in to submit a rating.
+            {ratingMessage && (
+              <p
+                className={`text-[13px] mt-2 font-medium ${
+                  userRating > 0 ? "text-green-600" : "text-gray-400"
+                }`}
+              >
+                {ratingMessage}
               </p>
             )}
           </div>
