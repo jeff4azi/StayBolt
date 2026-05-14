@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Share2, Star, Send, MessageSquarePlus } from "lucide-react";
 import { useApp } from "../context/AppContext";
@@ -7,7 +7,7 @@ import { supabase } from "../lib/supabase";
 import ListingCard from "../components/ListingCard";
 import StarRating from "../components/StarRating";
 
-const COLLAPSE_THRESHOLD = 60;
+const COLLAPSE_THRESHOLD = 100;
 const FALLBACK_AVATAR =
   "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y";
 
@@ -69,7 +69,6 @@ export default function AgentPage() {
   const [agentLoading, setAgentLoading] = useState(true);
 
   const [collapsed, setCollapsed] = useState(false);
-  const lastScrollY = useRef(0);
   const [showForm, setShowForm] = useState(false);
   const [hoverStar, setHoverStar] = useState(0);
   const [selectedStar, setSelectedStar] = useState(0);
@@ -80,16 +79,7 @@ export default function AgentPage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentY = window.scrollY;
-      if (currentY > COLLAPSE_THRESHOLD && currentY > lastScrollY.current) {
-        setCollapsed(true);
-      } else if (
-        currentY < lastScrollY.current ||
-        currentY <= COLLAPSE_THRESHOLD
-      ) {
-        setCollapsed(false);
-      }
-      lastScrollY.current = currentY;
+      setCollapsed(window.scrollY > COLLAPSE_THRESHOLD);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
