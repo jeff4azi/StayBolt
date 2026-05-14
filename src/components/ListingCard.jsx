@@ -59,7 +59,7 @@ export default function ListingCard({ listing }) {
         </div>
 
         {/* Action Buttons */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={handleSave}
             className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-lg hover:bg-gray-50 active:scale-90 transition-all"
