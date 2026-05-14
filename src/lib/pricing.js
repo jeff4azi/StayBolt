@@ -4,8 +4,8 @@ export const PAYMENT_TYPES = {
 };
 
 export const PAYMENT_TYPE_LABELS = {
+  [PAYMENT_TYPES.FIRST_AND_YEARLY]: "First payment then yearly rent",
   [PAYMENT_TYPES.YEARLY]: "Yearly rent only",
-  [PAYMENT_TYPES.FIRST_AND_YEARLY]: "First payment and yearly rent",
 };
 
 const currencyFormatter = new Intl.NumberFormat("en-NG", {
