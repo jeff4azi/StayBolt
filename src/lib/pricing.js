@@ -16,11 +16,11 @@ const currencyFormatter = new Intl.NumberFormat("en-NG", {
 
 export function toAmount(value) {
   if (value === null || value === undefined || value === "") return null;
-  const amount = Number(value);
-  return Number.isFinite(amount) ? amount : null;
+  const amount = String(value).trim();
+  return /^\d+$/.test(amount) ? amount : null;
 }
 
 export function formatCurrency(value) {
   const amount = toAmount(value);
-  return amount === null ? "" : currencyFormatter.format(amount);
+  return amount === null ? "" : currencyFormatter.format(Number(amount));
 }

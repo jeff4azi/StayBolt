@@ -130,7 +130,12 @@ export default function EditPropertyPage() {
   };
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    const nextValue =
+      name === "firstPaymentAmount" || name === "yearlyRentAmount"
+        ? value.replace(/\D/g, "")
+        : value;
+    setForm((prev) => ({ ...prev, [name]: nextValue }));
   };
 
   const handleFilePick = (e) => {
@@ -366,8 +371,9 @@ export default function EditPropertyPage() {
             </label>
             <input
               name="firstPaymentAmount"
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={form.firstPaymentAmount}
               onChange={handleChange}
               placeholder="e.g. 200000"
@@ -383,8 +389,9 @@ export default function EditPropertyPage() {
           </label>
           <input
             name="yearlyRentAmount"
-            type="number"
-            min="0"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={form.yearlyRentAmount}
             onChange={handleChange}
             placeholder="e.g. 150000"
