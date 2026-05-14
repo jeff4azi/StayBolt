@@ -135,41 +135,70 @@ export default function AddPropertyPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
     const yearlyRentAmount = toAmount(form.yearlyRentAmount);
     const firstPaymentAmount = toAmount(form.firstPaymentAmount);
     const needsFirstPayment =
       form.paymentType === PAYMENT_TYPES.FIRST_AND_YEARLY;
 
-    if (
-      !form.title ||
-      !form.location ||
-      yearlyRentAmount === null ||
-      (needsFirstPayment && firstPaymentAmount === null)
-    )
+    // Validate everything first
+    if (imageFiles.length === 0) {
+      setError("Please upload at least one image.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
+    }
+    if (!form.title.trim()) {
+      setError("Property title is required.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (!form.location.trim()) {
+      setError("Location is required.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (!form.minutesToCampus) {
+      setError("Minutes to campus is required.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (yearlyRentAmount === null) {
+      setError("Yearly rent amount is required.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (needsFirstPayment && firstPaymentAmount === null) {
+      setError("First payment amount is required.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (!form.description.trim()) {
+      setError("Please add a description.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
+    // Upload images
     setUploading(true);
     let coverUrl = null;
     let galleryUrls = [];
 
     try {
-      if (imageFiles.length > 0) {
-        const results = await Promise.all(
-          imageFiles.map((entry) =>
-            uploadImage(entry.file, "staybolt/listings"),
-          ),
-        );
-        coverUrl = results[0].image_url;
-        galleryUrls = results.map((r) => r.image_url);
-      }
+      const results = await Promise.all(
+        imageFiles.map((entry) => uploadImage(entry.file, "staybolt/listings")),
+      );
+      coverUrl = results[0].image_url;
+      galleryUrls = results.map((r) => r.image_url);
     } catch (err) {
-      setError(err.message ?? "Image upload failed");
+      setError(err.message ?? "Image upload failed. Please try again.");
       setUploading(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setUploading(false);
 
+    // Submit listing
     const { error: err } = await addListing({
       title: form.title,
       paymentType: form.paymentType,
@@ -185,14 +214,14 @@ export default function AddPropertyPage() {
     });
 
     if (err) {
-      setError(err.message || "Could not add property");
+      setError(err.message || "Could not add property. Please try again.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setSubmitted(true);
     setTimeout(() => navigate("/profile"), 1500);
   };
-
   const busy = uploading || submitted;
 
   return (
@@ -273,6 +302,12 @@ export default function AddPropertyPage() {
             onChange={handleFilePick}
           />
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-600 text-[13px] px-4 py-3 rounded-2xl">
+            ⚠️ {error}
+          </div>
+        )}
 
         {/* Title / Location */}
         {[
@@ -427,8 +462,6 @@ export default function AddPropertyPage() {
             className="w-full mt-1 text-[14px] text-gray-800 placeholder-gray-300 outline-none bg-transparent resize-none"
           />
         </div>
-
-        {error && <p className="text-red-600 text-[13px] px-1">{error}</p>}
 
         <button
           type="submit"

@@ -173,12 +173,9 @@ export default function EditPropertyPage() {
 
     setUploading(true);
 
-    // Separate existing and new images
-    const existingImages = imageFiles.filter((entry) => entry.isExisting);
-    const newImageFiles = imageFiles.filter((entry) => !entry.isExisting);
-
-    let coverUrl = null;
-    let galleryUrls = [];
+    const orderedImages = [...imageFiles];
+    const newImageFiles = orderedImages.filter((entry) => !entry.isExisting);
+    const uploadedByPreview = new Map();
 
     try {
       // Upload new images
@@ -188,24 +185,9 @@ export default function EditPropertyPage() {
             uploadImage(entry.file, "staybolt/listings"),
           ),
         );
-        const newUrls = results.map((r) => r.image_url);
-
-        // First new image becomes cover if no existing images, otherwise add to gallery
-        if (existingImages.length === 0 && newUrls.length > 0) {
-          coverUrl = newUrls[0];
-          galleryUrls = newUrls.slice(1);
-        } else {
-          galleryUrls = [
-            ...existingImages.map((entry) => entry.url),
-            ...newUrls,
-          ];
-          coverUrl =
-            existingImages.length > 0 ? existingImages[0].url : newUrls[0];
-        }
-      } else {
-        // No new images, use existing ones
-        coverUrl = existingImages.length > 0 ? existingImages[0].url : null;
-        galleryUrls = existingImages.slice(1).map((entry) => entry.url);
+        results.forEach((result, i) => {
+          uploadedByPreview.set(newImageFiles[i].preview, result.image_url);
+        });
       }
     } catch (err) {
       setError(err.message ?? "Image upload failed");
@@ -214,6 +196,13 @@ export default function EditPropertyPage() {
     }
 
     setUploading(false);
+
+    const galleryUrls = orderedImages
+      .map((entry) =>
+        entry.isExisting ? entry.url : uploadedByPreview.get(entry.preview),
+      )
+      .filter(Boolean);
+    const coverUrl = galleryUrls[0] ?? null;
 
     const { error: err } = await updateListing(id, {
       title: form.title,

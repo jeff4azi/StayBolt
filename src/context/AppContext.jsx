@@ -274,6 +274,7 @@ export function AppProvider({ children }) {
     async (id, updates) => {
       if (!isSupabaseConfigured())
         return { error: new Error("Not configured") };
+      const galleryUrls = updates.galleryUrls || [];
       const { error } = await supabase
         .from("listings")
         .update({
@@ -284,13 +285,31 @@ export function AppProvider({ children }) {
           location: updates.location,
           description: updates.description,
           cover_image_url: updates.image,
-          gallery: updates.galleryUrls || [],
           minutes_to_campus: updates.minutesToCampus,
           electricity_status: updates.electricityStatus,
           water_supply: updates.waterSupply,
         })
         .eq("id", id);
       if (error) return { error };
+
+      const { error: deleteImagesError } = await supabase
+        .from("listing_images")
+        .delete()
+        .eq("listing_id", id);
+      if (deleteImagesError) return { error: deleteImagesError };
+
+      if (galleryUrls.length > 0) {
+        const galleryRows = galleryUrls.map((url, i) => ({
+          listing_id: id,
+          image_url: url,
+          sort_order: i,
+        }));
+        const { error: insertImagesError } = await supabase
+          .from("listing_images")
+          .insert(galleryRows);
+        if (insertImagesError) return { error: insertImagesError };
+      }
+
       await refreshListings();
       return { error: null };
     },
