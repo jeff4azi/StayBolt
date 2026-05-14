@@ -28,11 +28,11 @@ const GoogleIcon = ({ size = 20 }) => (
   </svg>
 );
 
-const features = [
+/* const features = [
   { icon: Home, label: "Post listings instantly" },
   { icon: BarChart3, label: "Track views & inquiries" },
   { icon: MessageSquare, label: "Connect with renters" },
-];
+]; */
 
 export default function AuthScreen({
   onSignInWithEmail,
@@ -115,7 +115,7 @@ export default function AuthScreen({
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col gap-2.5 mt-10 w-full max-w-xs">
+        {/* <div className="relative z-10 flex flex-col gap-2.5 mt-10 w-full max-w-xs">
           {features.map(({ icon: Icon, label }) => (
             <div
               key={label}
@@ -127,10 +127,10 @@ export default function AuthScreen({
               </span>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
 
-      <div className="bg-white rounded-t-[2rem] -mt-6 relative z-10 px-6 pt-8 pb-10">
+      <div className="bg-white rounded-t-[2rem] -mt-6 relative z-10 px-6 pt-8 pb-20">
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-7" />
 
         <h2 className="text-[22px] font-bold text-gray-900 leading-snug">
